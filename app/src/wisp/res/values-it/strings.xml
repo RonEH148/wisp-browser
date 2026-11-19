@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Wisp: the texts that name the app (everything else comes from main/res) -->
+<resources>
+    <string name="app_name">Wisp</string>
+    <string name="turn_on_unknown_sources_for_app">Consenti a Wisp di installare app da \"Fonti sconosciute\" nelle impostazioni di sistema</string>
+    <string name="incognito_mode_hint">Ora puoi navigare in privato e altri utilizzatori di questo dispositivo non vedranno la tua attività. Wisp non salverà la cronologia di navigazione, i cookie e i dati del sito, le informazioni inserite nei moduli.\n\nTuttavia, i download e i segnalibri verranno salvati. La tua attività potrebbe essere comunque visibile ai siti Web che visiti, alla tua organizzazione o al provider di servizi Internet.</string>
+</resources>

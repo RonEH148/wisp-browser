@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Wisp (phone): merged over main/AndroidManifest.xml. Fewer permissions, no Google Safe Browsing. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- not needed on a phone: player apps are found through the <queries> in the main manifest,
+         and downloads go to Download/Wisp or a folder picked in the system file manager -->
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" tools:node="remove" />
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" tools:node="remove" />
+
+    <!-- without QUERY_ALL_PACKAGES, apps Wisp hands things to must be listed (the main manifest
+         already lists browsers, launchable apps and video players) -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.SEND" />
+            <data android:mimeType="text/plain" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.OPEN_DOCUMENT_TREE" />
+        </intent>
+    </queries>
+
+    <application>
+        <!-- TV only: hands the update source to LeanKeyboard Plus on the TV -->
+        <activity
+            android:name="com.phlox.tvwebbrowser.sofa.LumenTokenShareActivity"
+            tools:node="remove" />
+        <!-- Wisp runs in one process and is always private: no separate private-mode process -->
+        <activity
+            android:name="com.phlox.tvwebbrowser.activity.IncognitoModeMainActivity"
+            tools:node="remove" />
+        <!-- Google Safe Browsing sends the addresses you visit (hashed) to Google: off -->
+        <meta-data
+            android:name="android.webkit.WebView.EnableSafeBrowsing"
+            android:value="false" />
+    </application>
+</manifest>

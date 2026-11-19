@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Wisp: Lumen's theme with Wisp's colours, rounded dialogs and a status bar that matches the toolbar -->
+<resources>
+    <style name="AppTheme" parent="@style/Theme.TVBro">
+        <item name="colorAccent">@color/wisp_accent</item>
+        <item name="colorControlActivated">@color/wisp_accent</item>
+        <item name="android:alertDialogTheme">@style/WispDialog</item>
+        <item name="alertDialogTheme">@style/WispDialog</item>
+        <item name="android:statusBarColor">@color/wisp_bar</item>
+        <item name="android:windowLightStatusBar">@bool/wisp_light_status</item>
+    </style>
+</resources>

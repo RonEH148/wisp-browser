@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Wisp: the texts that name the app (everything else comes from main/res) -->
+<resources>
+    <string name="app_name">Wisp: Private Browser</string>
+    <string name="app_name_short" translatable="false">Wisp</string>
+    <string name="turn_on_unknown_sources_for_app">Please allow Wisp to install apps from \"Unknown sources\" in system settings</string>
+    <string name="incognito_mode_hint">Now you can browse privately, and other people who use this device won’t see your activity. Wisp won’t save your browsing history, cookies and site data, information entered in forms.\n\nHowever, downloads and bookmarks will be saved. Your activity might still be visible to websites you visit, your organization or internet service provider.</string>
+    <array name="home_page_modes">
+        <item>Wisp Home</item>
+        <item>Search engine</item>
+        <item>Custom</item>
+        <item>Blank</item>
+    </array>
+    <string name="sofabrowse_credit" translatable="false">Wisp is the phone version of Lumen, a modified version of TV Bro, and uses TV Bro\'s sources by Fedir Tsapana: https://github.com/truefedex/tv-bro</string>
+    <string name="sofa_extras_title">Wisp extras</string>
+    <string name="sofa_save_passwords_desc">Saved encrypted on this device. On a login page Wisp asks which account to fill in</string>
+    <string name="sofa_vpn_scope_browser">Wisp only</string>
+    <string name="sofa_vpn_browser_only">Only Wisp uses the VPN</string>
+    <string name="sofa_vpn_auto_connect">Connect when Wisp starts</string>
+    <string name="lumen_folder_not_writable_msg">Wisp couldn\'t create a file there (%1$s). The drive may be read-only or use an unsupported file system. Please choose another folder.</string>
+    <string name="lumen_folder_missing">The chosen download folder isn\'t available (USB drive unplugged?). Saving to internal storage/Download/Wisp instead</string>
+    <string name="lumen_deband_menu_player">Play in Wisp player with anime deband (best for TV)</string>
+    <string name="sofa_player_refused">The video server refused Wisp\'s player (HTTP %1$d). Some sites only let their own web player use a stream. Try another player app (Just Player)?</string>
+    <string name="lumen_deband_diag_noscript">No part of this page answered. The video is probably in a frame Wisp\'s page script can\'t run in.</string>
+    <string name="lumen_deband_diag_novideo">Wisp\'s script runs on this page, but found no video element. The site may draw its video in a way the filter can\'t reach.</string>
+    <string name="lumen_update_token_help">Your builds are in a private repository, so Wisp needs a read-only token to see them: on github.com → Settings → Developer settings → Fine-grained tokens → Generate, choose only this repository, and give it \"Contents: Read-only\". The token is stored encrypted on this device. Leave the field empty to keep the saved token.</string>
+    <string name="lumen_auto_check_updates">Check for Wisp updates once a day</string>
+    <string name="lumen_deband_site_added">Deband will switch on by itself on this site, in the page and in Wisp\'s player</string>
+</resources>

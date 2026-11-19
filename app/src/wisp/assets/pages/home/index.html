@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Wisp</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<style>
+:root {
+    --bg: #F4F4F5; --card: #FFFFFF; --pill: #EDEDEF; --text: #1A1A1C; --muted: #6E6E73;
+    --accent: #2C2C30; --accent-soft: #E6E6E8; --line: #E0E0E3; --on-accent: #FFFFFF;
+}
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg: #121213; --card: #1F1F21; --pill: #2A2A2D; --text: #EDEDEF; --muted: #A0A0A6;
+        --accent: #E4E4E7; --accent-soft: #3A3A3E; --line: #313134; --on-accent: #18181A;
+    }
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; padding: 0; }
+body {
+    background: var(--bg); color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    min-height: 100vh; display: flex; flex-direction: column; align-items: center;
+}
+main { width: 100%; max-width: 560px; padding: 15vh 20px 24px; flex: 1; }
+.brand { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-bottom: 26px; }
+.brand svg { width: 64px; height: 64px; filter: drop-shadow(0 4px 12px rgba(0, 0, 0, .18)); }
+.brand h1 { margin: 0; font-size: 26px; font-weight: 700; letter-spacing: .5px; }
+.search {
+    display: flex; align-items: center; gap: 6px; background: var(--card); border-radius: 28px;
+    padding: 6px 6px 6px 8px; box-shadow: 0 2px 12px rgba(0, 0, 0, .06); border: 1px solid var(--line);
+    position: relative;
+}
+.engine {
+    width: 40px; height: 40px; border-radius: 20px; border: 0; background: var(--pill) center/20px no-repeat;
+    flex: none; cursor: pointer;
+}
+#search-input {
+    flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--text);
+    font-size: 16px; padding: 10px 4px;
+}
+#search-input::placeholder { color: var(--muted); }
+.go {
+    width: 40px; height: 40px; border-radius: 20px; border: 0; background: var(--accent); flex: none;
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.go svg { width: 20px; height: 20px; fill: var(--on-accent); }
+#search-engines-list {
+    display: none; position: absolute; left: 0; right: 0; top: 58px; z-index: 5; background: var(--card);
+    border-radius: 18px; border: 1px solid var(--line); box-shadow: 0 8px 30px rgba(0,0,0,.18);
+    padding: 6px; margin: 0; list-style: none;
+}
+#search-engines-list.active { display: block; }
+#search-engines-list li {
+    display: flex; align-items: center; gap: 12px; padding: 11px 12px; border-radius: 12px; font-size: 15px;
+}
+#search-engines-list li:active { background: var(--pill); }
+#search-engines-list img { width: 20px; height: 20px; }
+.grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px 8px; margin-top: 34px;
+}
+.tile { display: flex; flex-direction: column; align-items: center; gap: 7px; min-width: 0; position: relative; }
+.tile .ico {
+    width: 52px; height: 52px; border-radius: 16px; background: var(--card); border: 1px solid var(--line);
+    display: flex; align-items: center; justify-content: center; overflow: hidden;
+}
+.tile .ico img { width: 28px; height: 28px; object-fit: contain; }
+.tile .ico .letter { font-size: 20px; font-weight: 700; color: var(--accent); }
+.tile .name {
+    font-size: 12px; color: var(--text); max-width: 100%; white-space: nowrap; overflow: hidden;
+    text-overflow: ellipsis; text-align: center;
+}
+.tile .more {
+    position: absolute; top: -4px; right: 6px; width: 20px; height: 20px; border-radius: 10px; opacity: .8;
+    background: var(--pill); color: var(--muted); font-size: 12px; line-height: 19px; text-align: center;
+}
+.tile.add .ico { border-style: dashed; background: transparent; color: var(--muted); font-size: 24px; }
+.hint { margin-top: 28px; text-align: center; color: var(--muted); font-size: 13px; line-height: 1.5; }
+footer { padding: 18px 20px 26px; color: var(--muted); font-size: 12px; text-align: center; }
+footer span { display: inline-block; padding: 4px 10px; margin: 3px; border-radius: 12px; background: var(--accent-soft); color: var(--accent); }
+/* kept for older callers, hidden */
+.mic, .lenz { display: none; }
+/* Wisp: searching happens in the address bar at the top (its left button picks the engine) */
+.search { display: none; }
+main { padding-top: 18vh; }
+.grid { margin-top: 10px; }
+</style>
+</head>
+<body>
+<main>
+    <div class="brand">
+        <svg viewBox="30 18 52 68" aria-hidden="true">
+            <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#8E7BFF"/><stop offset="1" stop-color="#4B37C8"/></linearGradient></defs>
+            <path fill="url(#g)" d="M46.5,58 C38.5,50 36.5,37 44,25 C44.5,36 52,43.5 61,47 C68.5,49.8 74,56.5 74,64.5 C74,73 67.3,79.5 59,79.5 C50.7,79.5 44,73 44,64.5 C44,62.1 44.9,59.8 46.5,58 Z"/>
+            <circle cx="59" cy="64.5" r="8" fill="#E4DDFF"/>
+            <circle cx="73" cy="33" r="2.8" fill="#8E7BFF"/>
+        </svg>
+        <h1>Wisp</h1>
+    </div>
+
+    <div class="search">
+        <button class="engine" id="engine-button" aria-label="Search engine" onclick="onSearchEngineDropDownClick()"></button>
+        <input type="search" id="search-input" placeholder="Search or type address" autocomplete="off"
+               autocapitalize="off" spellcheck="false" enterkeyhint="go">
+        <button class="go search_action_container" aria-label="Go">
+            <svg viewBox="0 0 24 24"><path d="M15.5,14h-0.79l-0.28,-0.27C15.41,12.59 16,11.11 16,9.5 16,5.91 13.09,3 9.5,3S3,5.91 3,9.5 5.91,16 9.5,16c1.61,0 3.09,-0.59 4.23,-1.57l0.27,0.28v0.79l5,4.99L20.49,19l-4.99,-5zM9.5,14C7.01,14 5,11.99 5,9.5S7.01,5 9.5,5 14,7.01 14,9.5 11.99,14 9.5,14z"/></svg>
+            <div class="mic"></div><div class="lenz"></div>
+        </button>
+        <ul id="search-engines-list">
+            <li onclick="applySearchEngine('ddg', null, true)"><img src="favicons/ddg.png" alt="">DuckDuckGo</li>
+            <li onclick="applySearchEngine('startpage', null, true)"><img src="favicons/startpage.png" alt="">Startpage</li>
+            <li onclick="applySearchEngine('bing', null, true)"><img src="favicons/bing.png" alt="">Bing</li>
+            <li onclick="applySearchEngine('google', null, true)"><img src="favicons/google.png" alt="">Google</li>
+            <li onclick="applySearchEngine('yahoo', null, true)"><img src="favicons/yahoo.png" alt="">Yahoo!</li>
+            <li onclick="applySearchEngine('yandex', null, true)"><img src="favicons/yandex.png" alt="">Yandex</li>
+            <li onclick="var u = promptCustomSearchEngineUrl(); if (u) applySearchEngine('custom', u, true)"><img src="favicons/custom.png" alt="">Custom…</li>
+        </ul>
+    </div>
+
+    <div class="grid" id="tiles"></div>
+    <div class="hint" id="hint"></div>
+</main>
+<footer><span>No Google</span><span>Ads &amp; trackers blocked</span><span>HTTPS first</span></footer>
+
+<script>
+var searchEngineUrlMap = {
+    "google": "https://www.google.com/search?q=[query]",
+    "bing": "https://www.bing.com/search?q=[query]",
+    "yahoo": "https://search.yahoo.com/search?p=[query]",
+    "ddg": "https://duckduckgo.com/?q=[query]",
+    "yandex": "https://yandex.com/search/?text=[query]",
+    "startpage": "https://www.startpage.com/sp/search?query=[query]",
+    "custom": ""
+};
+var recommendationsToDisplay = [];
+var homePageLinksMode = "BOOKMARKS";
+var SLOTS = 8;
+
+function inApp() { return window.hasOwnProperty("TVBro"); }
+
+function onSuggestionClicked(index) {
+    var bookmark = null;
+    if (homePageLinksMode === "BOOKMARKS" && inApp()) {
+        bookmark = recommendationsToDisplay.find(function (b) { return b.order === index; });
+        if (bookmark && TVBro.hasOwnProperty("markBookmarkRecommendationAsUseful")) {
+            TVBro.markBookmarkRecommendationAsUseful(index);
+        }
+    } else {
+        bookmark = recommendationsToDisplay[index];
+    }
+    if (!bookmark) return;
+    window.location.href = bookmark.dest_url ? bookmark.dest_url : bookmark.url;
+}
+
+function siteName(link) {
+    try { return new URL(link.url).host.replace(/^www\./, ""); } catch (e) { return link.url || ""; }
+}
+
+// called by the app with the links to show (bookmarks, most visited or latest history)
+function renderLinks(mode, linksArray) {
+    homePageLinksMode = mode ? mode : "BOOKMARKS";
+    recommendationsToDisplay = linksArray ? linksArray : [];
+    var box = document.getElementById("tiles");
+    box.innerHTML = "";
+    var shown = 0;
+    for (var i = 0; i < SLOTS; i++) {
+        var link = (homePageLinksMode === "BOOKMARKS" && inApp())
+            ? recommendationsToDisplay.find(function (c) { return c.order === i; })
+            : recommendationsToDisplay[i];
+        if (!link) continue;
+        shown++;
+        if (!link.favicon) {
+            try {
+                var u = new URL(link.url);
+                link.favicon = inApp() ? (TVBro.requestFavicon ? null : "favicon://" + u.host) : null;
+                if (inApp() && TVBro.requestFavicon) TVBro.requestFavicon(link.url);
+            } catch (e) {}
+        }
+        var tile = document.createElement("div");
+        tile.className = "tile";
+        tile.setAttribute("data-index", i);
+        tile.onclick = (function (idx) { return function () { onSuggestionClicked(idx); }; })(i);
+        var ico = document.createElement("div");
+        ico.className = "ico";
+        var letter = document.createElement("span");
+        letter.className = "letter";
+        letter.textContent = (link.title || siteName(link) || "?").trim().charAt(0).toUpperCase();
+        if (link.favicon) {
+            var img = document.createElement("img");
+            img.alt = "";
+            img.onerror = (function (l) { return function () { this.replaceWith(l); }; })(letter);
+            img.src = link.favicon;
+            ico.appendChild(img);
+        } else {
+            ico.appendChild(letter);
+        }
+        tile.appendChild(ico);
+        var name = document.createElement("div");
+        name.className = "name";
+        name.textContent = link.title || siteName(link);
+        tile.appendChild(name);
+        if (homePageLinksMode === "BOOKMARKS" && inApp()) {
+            var more = document.createElement("div");
+            more.className = "more";
+            more.textContent = "⋯";
+            more.onclick = (function (idx) { return function (e) { e.stopPropagation(); TVBro.onEditBookmark(idx); }; })(i);
+            tile.appendChild(more);
+        }
+        box.appendChild(tile);
+    }
+    document.getElementById("hint").textContent = shown === 0 && homePageLinksMode === "BOOKMARKS"
+        ? "Your bookmarks show up here. Bookmark a page from the ⋮ menu." : "";
+}
+
+function onSearchEngineDropDownClick() {
+    document.getElementById("search-engines-list").classList.toggle("active");
+}
+
+function promptCustomSearchEngineUrl() {
+    var engine = localStorage.getItem("search-engine");
+    var url = localStorage.getItem("search-engine-url") || searchEngineUrlMap[engine] || "";
+    return prompt("Search engine address, with [query] where the search words go", url);
+}
+
+// called by the app with the chosen search engine (and by the list above)
+function applySearchEngine(engine, searchEngineUrl, notifyTVBro) {
+    document.getElementById("search-engines-list").classList.remove("active");
+    if (!searchEngineUrlMap.hasOwnProperty(engine)) engine = "custom";
+    searchEngineUrl = searchEngineUrl ? searchEngineUrl : searchEngineUrlMap[engine];
+    try {
+        localStorage.setItem("search-engine", engine);
+        localStorage.setItem("search-engine-url", searchEngineUrl);
+    } catch (e) {}
+    var icon = "favicons/" + (engine === "custom" ? "custom" : engine) + ".png";
+    document.getElementById("engine-button").style.backgroundImage = "url('" + icon + "')";
+    if (inApp() && notifyTVBro) TVBro.setSearchEngine(engine, searchEngineUrl);
+}
+
+function addressFromText(text) {
+    var t = (text || "").trim();
+    if (!t || /\s/.test(t)) return null;
+    if (/^https?:\/\//i.test(t)) return t;
+    if (/^www\./i.test(t) || /^[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}(:\d+)?(\/.*)?$/i.test(t)) return "https://" + t;
+    return null;
+}
+
+function performSearch(text) {
+    if (!text || !text.trim()) return;
+    var address = addressFromText(text);
+    if (address) { window.open(address, "_self"); return; }
+    var url = null;
+    try { url = localStorage.getItem("search-engine-url"); } catch (e) {}
+    url = url || searchEngineUrlMap["ddg"];
+    window.open(url.replace("[query]", encodeURIComponent(text.trim())), "_self");
+}
+
+// favicons sent by the app (GeckoView engine)
+function onFaviconLoaded(url, data) {
+    var imgs = document.getElementsByTagName("img");
+    for (var i = 0; i < imgs.length; i++) {
+        if (imgs[i].src === "favicon://" + url) imgs[i].src = data;
+    }
+}
+
+function hideVoiceSearchUI() { /* Wisp has no voice search */ }
+
+document.getElementById("search-input").addEventListener("keydown", function (e) {
+    if (e.key === "Enter" || e.keyCode === 13) performSearch(this.value);
+});
+document.querySelector(".go").onclick = function () {
+    performSearch(document.getElementById("search-input").value);
+};
+document.addEventListener("click", function (e) {
+    if (!e.target.closest(".search")) document.getElementById("search-engines-list").classList.remove("active");
+});
+
+var startEngine = null, startUrl = null;
+try { startEngine = localStorage.getItem("search-engine"); startUrl = localStorage.getItem("search-engine-url"); } catch (e) {}
+applySearchEngine(startEngine || "ddg", startUrl, false);
+
+if (inApp()) {
+    TVBro.onHomePageLoaded(); // the app answers with renderLinks(...) and applySearchEngine(...)
+} else {
+    renderLinks("RECOMMENDATIONS", []);
+}
+</script>
+</body>
+</html>

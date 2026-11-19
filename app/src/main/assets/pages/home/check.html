@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lumen browser check</title>
+<style>
+  :root { --bg:#0f1d20; --card:#16292d; --text:#e8f5f2; --dim:#9fb8b3; --warn:#ffb347; --bad:#ff6b6b; --ok:#20c997; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:15px/1.35 system-ui,Roboto,sans-serif; padding:16px; }
+  h1 { font-size:20px; margin:0 0 4px; }
+  p.sub { margin:0 0 12px; color:var(--dim); font-size:13px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(420px,1fr)); gap:10px; }
+  section { background:var(--card); border-radius:12px; padding:10px 12px; }
+  h2 { font-size:14px; margin:0 0 6px; color:var(--ok); text-transform:uppercase; letter-spacing:.05em; }
+  table { width:100%; border-collapse:collapse; }
+  td { padding:2px 0; vertical-align:top; font-size:13px; }
+  td.k { color:var(--dim); width:42%; padding-right:8px; }
+  td.v { word-break:break-all; font-family:ui-monospace,monospace; font-size:12.5px; }
+  .warn { color:var(--warn); } .bad { color:var(--bad); font-weight:600; } .ok { color:var(--ok); }
+  #flags { margin:0 0 12px; padding:10px 12px; border-radius:12px; background:#2a1d10; }
+  #flags.none { background:#103027; }
+  #flags li { margin:2px 0; }
+  @media (max-width:480px){ .grid{ grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<h1>Lumen browser check</h1>
+<p class="sub">What every website (and Cloudflare's verification) can see about this browser and device. Take a photo on each device and compare. <span id="when"></span></p>
+<div id="flags">Checking…</div>
+<div class="grid" id="grid"></div>
+<script>
+(async function () {
+  var sections = {}, flags = [];
+  function sec(name) {
+    if (sections[name]) return sections[name];
+    var s = document.createElement('section'); s.innerHTML = '<h2></h2><table></table>';
+    s.querySelector('h2').textContent = name;
+    document.getElementById('grid').appendChild(s);
+    return sections[name] = s.querySelector('table');
+  }
+  function row(section, key, value, cls) {
+    var tr = document.createElement('tr');
+    var k = document.createElement('td'); k.className = 'k'; k.textContent = key;
+    var v = document.createElement('td'); v.className = 'v' + (cls ? ' ' + cls : '');
+    v.textContent = value === undefined ? 'undefined' : (typeof value === 'object' ? JSON.stringify(value) : String(value));
+    tr.appendChild(k); tr.appendChild(v); sec(section).appendChild(tr);
+  }
+  function flag(text, bad) { flags.push({ text: text, bad: bad }); }
+  function safe(f) { try { return f(); } catch (e) { return 'error: ' + e.message; } }
+  document.getElementById('when').textContent = 'Device time: ' + new Date().toString();
+
+  var n = navigator, ua = n.userAgent;
+  var mobileUa = /Mobile|Android/.test(ua), chromeUa = /Chrome\//.test(ua), firefoxUa = /Firefox\//.test(ua);
+
+  // ---- identity
+  row('Identity', 'User agent', ua);
+  row('Identity', 'platform', n.platform);
+  row('Identity', 'vendor', n.vendor);
+  row('Identity', 'appVersion', n.appVersion);
+  row('Identity', 'oscpu', n.oscpu);
+  row('Identity', 'languages', safe(function () { return (n.languages || []).join(', '); }));
+  if (n.userAgentData) {
+    row('Identity', 'Client hints: brands', n.userAgentData.brands.map(function (b) { return b.brand + ' ' + b.version; }).join(' | '));
+    row('Identity', 'Client hints: mobile / platform', n.userAgentData.mobile + ' / ' + n.userAgentData.platform);
+    try {
+      var hi = await n.userAgentData.getHighEntropyValues(['model', 'platformVersion', 'fullVersionList', 'architecture', 'bitness']);
+      row('Identity', 'Client hints: model', hi.model || '(empty)');
+      row('Identity', 'Client hints: platformVersion', hi.platformVersion);
+      row('Identity', 'Client hints: arch / bitness', (hi.architecture || '') + ' / ' + (hi.bitness || ''));
+      row('Identity', 'Client hints: full versions', (hi.fullVersionList || []).map(function (b) { return b.brand + ' ' + b.version; }).join(' | '));
+    } catch (e) { row('Identity', 'Client hints: details', 'error: ' + e.message); }
+    // identity contradictions: the engine always tells the truth in client hints
+    var brands = n.userAgentData.brands.map(function (b) { return b.brand + ' ' + b.version; }).join(' ');
+    var engineVer = (brands.match(/Chromium (\d+)/) || [])[1];
+    var uaVer = (ua.match(/Chrome\/(\d+)/) || [])[1];
+    if (firefoxUa) flag('Says Firefox, but the engine is Chromium (client hints exist): a custom identity ("Identify as Firefox" or a custom user agent) - a strong bot sign', true);
+    else if (!chromeUa) flag('The identity doesn\'t say Chrome, but the engine is Chromium: a custom user agent - a strong bot sign', true);
+    else if (engineVer && uaVer && engineVer !== uaVer) flag('The identity says Chrome ' + uaVer + ' but the engine is Chromium ' + engineVer + ': a custom user agent with the wrong version - a strong bot sign', true);
+    if (/Windows|Macintosh|X11|CrOS/.test(ua) && n.userAgentData.platform === 'Android') flag('The identity says ' + (ua.match(/Windows|Macintosh|X11|CrOS/)[0]) + ' (desktop site or custom user agent) but the engine reports Android - a strong bot sign', true);
+    if (/Mobile/.test(ua) !== n.userAgentData.mobile && /Android/.test(ua)) flag('"Mobile" in the identity (' + /Mobile/.test(ua) + ') doesn\'t match the engine\'s mobile flag (' + n.userAgentData.mobile + ')', false);
+    var wv = n.userAgentData.brands.some(function (b) { return /WebView/i.test(b.brand); });
+    if (wv) flag('Client hints say "Android WebView" (sites can tell this is an app\'s built-in browser, not Chrome)', false);
+  } else row('Identity', 'Client hints', 'not available');
+  if (chromeUa && typeof window.chrome === 'undefined') flag('Says Chrome but window.chrome is missing (typical of WebView and of automated browsers)', false);
+
+  // ---- automation / modification signs
+  row('Automation signs', 'navigator.webdriver', n.webdriver, n.webdriver ? 'bad' : 'ok');
+  if (n.webdriver) flag('navigator.webdriver is true: the browser reports itself as automated', true);
+  row('Automation signs', 'window.chrome', typeof window.chrome);
+  row('Automation signs', 'Lumen bridge (window.TVBro)', typeof window.TVBro);
+  function nativeFn(f) { try { return /\[native code\]/.test(Function.prototype.toString.call(f)); } catch (e) { return 'error'; } }
+  var patched = [];
+  [['window.open', window.open], ['fetch', window.fetch], ['XMLHttpRequest.open', XMLHttpRequest.prototype.open],
+   ['HTMLMediaElement.play', HTMLMediaElement.prototype.play], ['Element.attachShadow', Element.prototype.attachShadow],
+   ['Element.requestFullscreen', Element.prototype.requestFullscreen], ['HTMLAnchorElement.click', HTMLAnchorElement.prototype.click]]
+    .forEach(function (p) { var nat = nativeFn(p[1]); row('Automation signs', p[0] + ' is native', nat, nat === true ? 'ok' : 'warn'); if (nat !== true) patched.push(p[0]); });
+  if (patched.length) flag('Page functions changed by the browser: ' + patched.join(', ') + ' (detectable by verification scripts)', false);
+  row('Automation signs', 'plugins / mimeTypes', (n.plugins ? n.plugins.length : 'none') + ' / ' + (n.mimeTypes ? n.mimeTypes.length : 'none'));
+  row('Automation signs', 'pdfViewerEnabled', n.pdfViewerEnabled);
+  row('Automation signs', 'Notification.permission', safe(function () { return typeof Notification !== 'undefined' ? Notification.permission : 'no Notification API'; }));
+  try {
+    var perm = await n.permissions.query({ name: 'notifications' });
+    row('Automation signs', 'permissions: notifications', perm.state);
+    if (typeof Notification !== 'undefined' && Notification.permission === 'denied' && perm.state === 'prompt')
+      flag('Notification permission says "denied" but the permissions API says "prompt" (a classic headless-browser mismatch)', true);
+  } catch (e) { row('Automation signs', 'permissions: notifications', 'error: ' + e.message); }
+
+  // ---- input
+  var touch = n.maxTouchPoints;
+  row('Input', 'maxTouchPoints', touch, mobileUa && !touch ? 'warn' : '');
+  row('Input', 'touch events', 'ontouchstart' in window);
+  row('Input', 'pointer: fine / coarse / none', [matchMedia('(any-pointer: fine)').matches, matchMedia('(any-pointer: coarse)').matches, matchMedia('(pointer: none)').matches].join(' / '));
+  row('Input', 'hover', matchMedia('(any-hover: hover)').matches);
+  if (mobileUa && !touch) flag('Says it is a mobile device but has no touch screen (maxTouchPoints 0): an unusual combination', false);
+
+  // ---- screen
+  row('Screen', 'screen', screen.width + ' x ' + screen.height + ' (available ' + screen.availWidth + ' x ' + screen.availHeight + ')');
+  row('Screen', 'devicePixelRatio', devicePixelRatio);
+  row('Screen', 'window inner / outer', innerWidth + ' x ' + innerHeight + ' / ' + outerWidth + ' x ' + outerHeight);
+  row('Screen', 'colorDepth', screen.colorDepth);
+  row('Screen', 'orientation', safe(function () { return screen.orientation ? screen.orientation.type : 'n/a'; }));
+  if (outerWidth === 0 || outerHeight === 0) flag('Window outer size is 0 (looks headless)', true);
+  if (mobileUa && screen.width * devicePixelRatio >= 1900 && screen.height * devicePixelRatio >= 1000 && !touch)
+    flag('A "phone" with a TV-sized screen and no touch', false);
+
+  // ---- hardware
+  row('Hardware', 'CPU cores', n.hardwareConcurrency);
+  row('Hardware', 'deviceMemory (GB)', n.deviceMemory);
+  var gl = null, gl2 = false;
+  try { var c = document.createElement('canvas'); gl = c.getContext('webgl') || c.getContext('experimental-webgl'); gl2 = !!document.createElement('canvas').getContext('webgl2'); } catch (e) {}
+  if (gl) {
+    var dbg = gl.getExtension('WEBGL_debug_renderer_info');
+    row('Hardware', 'WebGL vendor', dbg ? gl.getParameter(dbg.UNMASKED_VENDOR_WEBGL) : gl.getParameter(gl.VENDOR));
+    row('Hardware', 'WebGL renderer', dbg ? gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER));
+    row('Hardware', 'WebGL version', gl.getParameter(gl.VERSION));
+    row('Hardware', 'WebGL2', gl2);
+    var r = dbg ? String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL)) : '';
+    if (/SwiftShader|llvmpipe|Software/i.test(r)) flag('Graphics run in software (' + r + '): typical of servers and bots', true);
+  } else { row('Hardware', 'WebGL', 'not available', 'bad'); flag('No WebGL: many verification checks treat this as a bot sign', true); }
+  row('Hardware', 'battery API', typeof n.getBattery === 'function');
+  row('Hardware', 'connection', safe(function () { var c = n.connection; return c ? (c.effectiveType + ', ' + c.downlink + ' Mbps, rtt ' + c.rtt) : 'n/a'; }));
+  try { var ac = new (window.AudioContext || window.webkitAudioContext)(); row('Hardware', 'audio sample rate', ac.sampleRate); ac.close(); } catch (e) { row('Hardware', 'audio', 'error: ' + e.message); }
+
+  // ---- time & place
+  var tz = safe(function () { return Intl.DateTimeFormat().resolvedOptions().timeZone; });
+  row('Time & place', 'time zone', tz);
+  row('Time & place', 'UTC offset (min)', -new Date().getTimezoneOffset());
+  row('Time & place', 'locale', safe(function () { return Intl.DateTimeFormat().resolvedOptions().locale; }));
+  var t0 = Date.now(), net = null;
+  async function netTime() {
+    var urls = ['https://worldtimeapi.org/api/ip', 'https://timeapi.io/api/Time/current/zone?timeZone=UTC'];
+    for (var i = 0; i < urls.length; i++) {
+      try {
+        var a = Date.now(); var res = await fetch(urls[i], { cache: 'no-store' }); var j = await res.json(); var b = Date.now();
+        var t = j.unixtime ? j.unixtime * 1000 : Date.parse(j.dateTime + 'Z');
+        if (t) return { offset: Math.round(((a + b) / 2 - t) / 1000), src: urls[i].split('/')[2] };
+      } catch (e) {}
+    }
+    return null;
+  }
+  net = await netTime();
+  if (net) {
+    var off = Math.abs(net.offset);
+    row('Time & place', 'clock vs internet time', (net.offset > 0 ? '+' : '') + net.offset + ' s (' + net.src + ')', off > 60 ? 'bad' : off > 5 ? 'warn' : 'ok');
+    if (off > 60) flag('Device clock is off by ' + net.offset + ' s', true);
+  } else row('Time & place', 'clock vs internet time', 'could not reach a time server');
+
+  // ---- what Cloudflare itself sees
+  async function trace() {
+    var urls = ['https://www.cloudflare.com/cdn-cgi/trace', 'https://1.1.1.1/cdn-cgi/trace', 'https://one.one.one.one/cdn-cgi/trace'];
+    for (var i = 0; i < urls.length; i++) {
+      try { var res = await fetch(urls[i], { cache: 'no-store' }); var t = await res.text(); if (/ip=/.test(t)) return t; } catch (e) {}
+    }
+    return null;
+  }
+  var tr = await trace();
+  if (tr) {
+    var map = {}; tr.trim().split('\n').forEach(function (l) { var i = l.indexOf('='); map[l.slice(0, i)] = l.slice(i + 1); });
+    ['ip', 'loc', 'colo', 'http', 'tls', 'sni', 'warp', 'gateway', 'uag'].forEach(function (k) { if (map[k] !== undefined) row('Cloudflare sees', k, map[k]); });
+    if (map.uag && map.uag !== ua) flag('Cloudflare receives a different user agent than the page reports (header vs page mismatch)', true);
+    if (map.warp && map.warp !== 'off') flag('Traffic goes through WARP/VPN (' + map.warp + '); VPN addresses get more checks', false);
+  } else row('Cloudflare sees', 'trace', 'not reachable from this page');
+
+  // ---- storage
+  row('Storage', 'cookies enabled', n.cookieEnabled, n.cookieEnabled ? 'ok' : 'bad');
+  row('Storage', 'localStorage', safe(function () { localStorage.setItem('_lc', '1'); localStorage.removeItem('_lc'); return true; }));
+  row('Storage', 'indexedDB', typeof indexedDB !== 'undefined');
+  row('Storage', 'third-party cookie access API', typeof document.hasStorageAccess === 'function');
+  if (!n.cookieEnabled) flag('Cookies are disabled: verification can never be remembered', true);
+
+  var box = document.getElementById('flags');
+  if (!flags.length) { box.className = 'none'; box.textContent = 'Nothing unusual found.'; }
+  else {
+    box.innerHTML = '<b>Things verification checks may notice:</b><ul></ul>';
+    flags.forEach(function (f) { var li = document.createElement('li'); li.textContent = f.text; li.className = f.bad ? 'bad' : 'warn'; box.querySelector('ul').appendChild(li); });
+  }
+})();
+</script>
+</body>
+</html>

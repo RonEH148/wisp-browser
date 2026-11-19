@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="utf-8"?>
+<merge xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:parentTag="android.widget.LinearLayout"
+    tools:orientation="horizontal">
+  <!-- Lumen: home button with the app's icon, right before the address bar -->
+  <ImageButton
+      android:id="@+id/ibHome"
+      android:layout_width="44dp"
+      android:layout_height="44dp"
+      android:layout_marginStart="6dp"
+      android:layout_gravity="center_vertical"
+      android:padding="5dp"
+      android:scaleType="fitCenter"
+      android:background="@drawable/button_bg_selector"
+      android:contentDescription="@string/navigate_home"
+      android:nextFocusRight="@+id/ibSiteData"
+      android:src="@drawable/ic_launcher" />
+  <!-- Lumen: the current site's data (cookies, storage, cache); shows the site's icon -->
+  <ImageButton
+      android:id="@+id/ibSiteData"
+      android:layout_width="40dp"
+      android:layout_height="40dp"
+      android:layout_marginStart="4dp"
+      android:layout_gravity="center_vertical"
+      android:padding="8dp"
+      android:scaleType="fitCenter"
+      android:background="@drawable/button_bg_selector"
+      android:contentDescription="@string/lumen_site_data"
+      android:nextFocusLeft="@+id/ibHome"
+      android:nextFocusRight="@+id/etUrl"
+      android:src="@drawable/ic_site_data" />
+  <FrameLayout
+      android:layout_width="0dp"
+      android:layout_weight="1"
+      android:layout_height="wrap_content"
+      android:layout_marginStart="6dp"
+      android:layout_marginEnd="10dp"
+      android:layout_gravity="center_vertical"
+      android:background="@color/top_bar_background"
+      android:id="@+id/flUrl">
+    <EditText
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/etUrl"
+        android:iconifiedByDefault="false"
+        android:textCursorDrawable="@null"
+        android:textColor="@color/default_url_color"
+                android:nextFocusRight="@+id/ibHistory"
+        android:nextFocusLeft="@+id/ibSiteData"
+        android:nextFocusDown="@+id/vTabs"
+        android:imeOptions="actionSearch"
+        android:hint="@string/url_prompt"
+        android:inputType="textFilter|textNoSuggestions|textUri"
+        android:importantForAutofill="no" />
+  </FrameLayout>
+
+  <!-- Wisp (phone): reload (stop while loading). Hidden in Lumen. -->
+  <ImageButton
+      android:id="@+id/ibReload"
+      android:layout_width="40dp"
+      android:layout_height="44dp"
+      android:layout_gravity="center_vertical"
+      android:padding="10dp"
+      android:scaleType="fitCenter"
+      android:background="@drawable/button_bg_selector"
+      android:contentDescription="@string/wisp_reload"
+      android:src="@drawable/ic_refresh_grey_900_24dp"
+      android:visibility="gone" />
+
+  <!-- Wisp (phone): + opens a new tab. Hidden in Lumen. -->
+  <ImageButton
+      android:id="@+id/ibNewTab"
+      android:layout_width="40dp"
+      android:layout_height="44dp"
+      android:layout_gravity="center_vertical"
+      android:padding="10dp"
+      android:scaleType="fitCenter"
+      android:background="@drawable/button_bg_selector"
+      android:contentDescription="@string/wisp_new_tab"
+      android:src="@drawable/ic_wisp_add"
+      android:visibility="gone" />
+
+  <!-- Wisp (phone): number of open tabs, opens the tab list. Hidden in Lumen. -->
+  <TextView
+      android:id="@+id/tvTabCount"
+      android:layout_width="44dp"
+      android:layout_height="44dp"
+      android:layout_gravity="center_vertical"
+      android:gravity="center"
+      android:textSize="13sp"
+      android:textStyle="bold"
+      android:includeFontPadding="false"
+      android:background="@drawable/wisp_tab_count_bg"
+      android:contentDescription="@string/wisp_tabs"
+      android:clickable="true"
+      android:focusable="true"
+      android:visibility="gone"
+      android:text="1" />
+
+  <ImageButton
+      android:layout_marginStart="2dp"
+      android:layout_marginEnd="2dp"
+      android:padding="10dp"
+      android:scaleType="fitCenter"
+      android:id="@+id/ibHistory"
+      android:layout_width="44dp"
+      android:layout_height="44dp"
+      android:background="@drawable/button_bg_selector"
+      android:contentDescription="@string/history"
+      android:nextFocusRight="@+id/ibFavorites"
+      android:nextFocusDown="@+id/vTabs"
+      android:src="@drawable/ic_history_grey_900_36dp"
+      />
+
+  <ImageButton
+      android:layout_marginStart="2dp"
+      android:layout_marginEnd="2dp"
+      android:padding="10dp"
+      android:scaleType="fitCenter"
+      android:layout_width="44dp"
+      android:layout_height="44dp"
+      android:id="@+id/ibFavorites"
+      android:src="@drawable/ic_star_border_grey_900_36dp"
+      android:nextFocusRight="@+id/ibDownloads"
+      android:nextFocusDown="@+id/vTabs"
+      android:background="@drawable/button_bg_selector"
+      android:contentDescription="@string/favorites" />
+
+  <ImageButton
+      android:layout_marginStart="2dp"
+      android:layout_marginEnd="2dp"
+      android:padding="10dp"
+      android:scaleType="fitCenter"
+      android:id="@+id/ibDownloads"
+      android:layout_width="44dp"
+      android:layout_height="44dp"
+      android:background="@drawable/button_bg_selector"
+      android:contentDescription="@string/downloads"
+      android:nextFocusRight="@+id/ibIncognito"
+      android:nextFocusDown="@+id/vTabs"
+      android:src="@drawable/ic_file_download_grey_900"
+      />
+
+  <com.phlox.tvwebbrowser.widgets.CheckableImageButton
+      android:layout_marginStart="2dp"
+      android:layout_marginEnd="2dp"
+      android:padding="10dp"
+      android:scaleType="fitCenter"
+      android:id="@+id/ibIncognito"
+      android:layout_width="44dp"
+      android:layout_height="44dp"
+      android:background="@drawable/button_bg_selector"
+      android:contentDescription="@string/incognito_mode"
+      android:nextFocusRight="@+id/ibSettings"
+      android:nextFocusDown="@+id/vTabs"
+      android:src="@drawable/ic_incognito"
+      />
+
+  <ImageButton
+      android:layout_marginStart="2dp"
+      android:layout_marginEnd="2dp"
+      android:padding="10dp"
+      android:scaleType="fitCenter"
+      android:src="@drawable/ic_settings_grey_900_24dp"
+      android:layout_width="44dp"
+      android:layout_height="44dp"
+      android:nextFocusRight="@+id/ibMenu"
+      android:nextFocusDown="@+id/vTabs"
+      android:id="@+id/ibSettings"
+      android:background="@drawable/button_bg_selector"
+      android:contentDescription="@string/settings" />
+
+  <ImageButton
+      android:layout_marginStart="2dp"
+      android:layout_marginEnd="2dp"
+      android:padding="10dp"
+      android:scaleType="fitCenter"
+      android:layout_width="44dp"
+      android:layout_height="44dp"
+      android:id="@+id/ibMenu"
+      android:src="@drawable/ic_close_grey_900_36dp"
+      android:nextFocusLeft="@+id/ibSettings"
+      android:nextFocusDown="@+id/vTabs"
+      android:background="@drawable/button_bg_selector"
+      android:focusable="true"
+      android:focusableInTouchMode="true"
+      android:contentDescription="@string/close_application" />
+
+</merge>

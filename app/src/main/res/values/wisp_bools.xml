@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Wisp: dark status bar icons on the light theme -->
+    <bool name="wisp_light_status">true</bool>
+</resources>

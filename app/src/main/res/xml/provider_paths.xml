@@ -1,0 +1,7 @@
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <external-path name="external_files" path="."/>
+    <!-- downloads saved on SD cards / USB drives (/storage/XXXX-XXXX) -->
+    <root-path name="storage" path="storage"/>
+    <cache-path name="cache" path="." />
+    <external-cache-path name="external_cache" path="." />
+</paths>

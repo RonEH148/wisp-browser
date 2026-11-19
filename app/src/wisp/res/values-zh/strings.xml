@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Wisp: the texts that name the app (everything else comes from main/res) -->
+<resources>
+    <string name="app_name">Wisp</string>
+    <string name="turn_on_unknown_sources_for_app">请允许 Wisp 在系统设置中从“未知来源”安装应用</string>
+    <string name="incognito_mode_hint">现在您可以浏览隐私内容，其他使用此设备的人将看不到您的活动。 Wisp 不会保存您的浏览历史记录、cookie 和网站数据以及在表格中输入的信息。\n\n但是，下载和书签将被保存。 您访问的网站、您的组织或互联网服务提供商可能仍然可以看到您的活动。</string>
+    <string-array name="home_page_modes">
+    <item>Wisp 主页</item>
+    <item>搜索引擎</item>
+    <item>自定义</item>
+    <item>空白页</item>
+  </string-array>
+</resources>

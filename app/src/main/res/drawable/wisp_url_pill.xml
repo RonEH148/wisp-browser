@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Wisp: the address field on the top bar - its own colour and a thin outline so it stands out from the bar -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="@color/wisp_pill" />
+    <stroke android:width="1dp" android:color="@color/wisp_pill_stroke" />
+    <corners android:radius="22dp" />
+</shape>

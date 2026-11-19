@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Lumen: no microphone access (also strips it if a library asks for it) -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" tools:node="remove" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="29"/>
+    <!-- Lumen: optional, lets the download folder be any folder (asked only from the folder browser) -->
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
+        tools:ignore="ScopedStorage" />
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"
+        tools:ignore="QueryAllPackagesPermission" />
+
+    <uses-feature
+        android:name="android.hardware.touchscreen"
+        android:required="false" />
+    <uses-feature android:name="android.hardware.faketouch"
+        android:required="false"/>
+    <uses-feature
+        android:name="android.hardware.camera"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.microphone"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.location"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.location.network"
+        android:required="false" />
+    <uses-feature
+        android:name="android.software.leanback"
+        android:required="false" />
+    <uses-feature android:name="android.hardware.screen.landscape"
+        android:required="false"/>
+    <uses-feature android:name="android.software.webview"
+        android:required="false"/>
+
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="http" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:mimeType="video/*" />
+        </intent>
+    </queries>
+
+    <application
+        android:name=".TVBro"
+        android:allowBackup="true"
+        android:hardwareAccelerated="true"
+        android:icon="@drawable/ic_launcher"
+        android:label="@string/app_name"
+        android:largeHeap="true"
+        android:supportsRtl="true"
+        android:usesCleartextTraffic="true"
+        android:screenOrientation="sensor"
+        android:theme="@style/AppTheme"
+        android:requestLegacyExternalStorage="true"
+        tools:ignore="DiscouragedApi" >
+        <activity
+            android:name=".activity.main.MainActivity"
+            android:banner="@drawable/banner"
+            android:icon="@drawable/ic_launcher"
+            android:label="@string/app_name_short"
+            android:launchMode="singleTask"
+            android:configChanges="uiMode|keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize|density"
+            android:screenOrientation="sensor"
+            android:logo="@drawable/banner"
+            android:exported="true"
+            tools:ignore="DiscouragedApi">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="http" />
+                <data android:scheme="https" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".activity.history.HistoryActivity"
+            android:configChanges="keyboard|keyboardHidden|screenLayout|screenSize|orientation"
+            android:screenOrientation="behind"
+            android:windowSoftInputMode="adjustResize"
+            tools:ignore="DiscouragedApi" />
+
+        <activity android:name=".activity.downloads.DownloadsActivity"
+            android:configChanges="keyboard|keyboardHidden|screenLayout|screenSize|orientation"
+            android:screenOrientation="behind"
+            android:windowSoftInputMode="adjustResize"
+            tools:ignore="DiscouragedApi"/>
+
+        <!-- Lumen native 4K/HDR player -->
+        <activity android:name=".sofa.SofaPlayerActivity"
+            android:exported="false"
+            android:supportsPictureInPicture="false"
+            android:resizeableActivity="true"
+            android:theme="@style/Theme.AppCompat.NoActionBar"
+            android:screenOrientation="sensorLandscape"
+            android:configChanges="keyboard|keyboardHidden|navigation|screenLayout|screenSize|smallestScreenSize|orientation|uiMode|density"
+            tools:ignore="DiscouragedApi" />
+
+        <activity android:name=".activity.IncognitoModeMainActivity"
+            android:process=":incognito"
+            android:exported="false"
+            android:icon="@drawable/ic_launcher"
+            android:label="@string/app_name_short"
+            android:screenOrientation="sensor"
+            android:launchMode="singleTask"
+            android:configChanges="uiMode|keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize|density"
+            tools:ignore="DiscouragedApi" />
+
+        <meta-data
+            android:name="android.webkit.WebView.MetricsOptOut"
+            android:value="true" />
+
+        <!-- Lumen: gives LeanKeyboard Plus the update source (checks the caller's signature, asks the user) -->
+        <activity
+            android:name="com.phlox.tvwebbrowser.sofa.LumenTokenShareActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <intent-filter>
+                <action android:name="com.sofabrowse.tv.action.SHARE_UPDATE_SOURCE" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
+        <!-- Lumen: keeps the proxy for external players running while they play -->
+        <service
+            android:name="com.phlox.tvwebbrowser.sofa.LumenProxyService"
+            android:foregroundServiceType="dataSync"
+            android:exported="false"/>
+
+        <!-- starts/stops the WireGuard tunnel in the main process (the private mode process can't) -->
+        <service
+            android:name="com.phlox.tvwebbrowser.sofa.SofaVpnControlService"
+            android:exported="false" />
+
+        <service
+            android:name=".service.downloads.DownloadService"
+            android:foregroundServiceType="dataSync"
+            android:exported="false"/>
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.provider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/provider_paths"/>
+        </provider>
+    </application>
+</manifest>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Wisp: the texts that name the app (everything else comes from main/res) -->
+<resources>
+    <string name="app_name">Wisp</string>
+    <string name="turn_on_unknown_sources_for_app">"אנא אפשר לWisp להתקין מ\"מקורות לא ידועים\" בהגדרות המערכת"</string>
+    <string name="incognito_mode_hint">עכשיו אתה יכול לגלוש באופן פרטי, ואנשים אחרים שמשתמשים במכשיר הזה לא יראו את הפעילות שלך. Wisp לא ישמור את היסטוריית הגלישה שלך, קובצי Cookie ונתוני אתר, מידע שהוזן בטפסים.  עם זאת, הורדות וסימניות יישמרו. ייתכן שהפעילות שלך עדיין תהיה גלויה לאתרים שבהם אתה מבקר, לארגון או לספק שירותי האינטרנט שלך.</string>
+</resources>

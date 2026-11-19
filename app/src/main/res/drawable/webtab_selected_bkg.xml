@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Lumen: selected tab. A plain shape (no nine-patch padding), so the icon and the close
+     button stay inside the tab. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@color/top_bar_background2" />
+            <corners android:topLeftRadius="10dp" android:topRightRadius="10dp" />
+        </shape>
+    </item>
+    <item android:gravity="bottom" android:height="3dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#20C997" />
+        </shape>
+    </item>
+</layer-list>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Wisp: the texts that name the app (everything else comes from main/res) -->
+<resources>
+    <string name="app_name">Wisp</string>
+    <string name="turn_on_unknown_sources_for_app">Bitte erlaube Wisp die Installation von Apps aus \"Unbekannten Quellen\" in den Systemeinstellungen</string>
+    <string name="incognito_mode_hint">Jetzt können Sie privat surfen und andere Personen, die dieses Gerät verwenden, können Ihre Aktivitäten nicht sehen. Wisp speichert Ihren Browserverlauf, Cookies und Websitedaten sowie in Formulare eingegebene Informationen nicht.\n\nDownloads und Lesezeichen werden jedoch gespeichert. Ihre Aktivitäten sind möglicherweise weiterhin für von Ihnen besuchte Websites, Ihre Organisation oder Ihren Internetdienstanbieter sichtbar.</string>
+    <string-array name="home_page_modes">
+    <item>Wisp Home</item>
+    <item>Suchmaschine</item>
+    <item>Brauch</item>
+    <item>Leer</item>
+  </string-array>
+</resources>

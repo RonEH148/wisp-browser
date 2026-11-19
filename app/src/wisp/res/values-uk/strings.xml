@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Wisp: the texts that name the app (everything else comes from main/res) -->
+<resources>
+    <string name="app_name">Wisp</string>
+    <string name="turn_on_unknown_sources_for_app">Будь-ласка, дозвольте Wisp встановлювати додатки з невідомих джерел у системних налаштунках</string>
+    <string name="incognito_mode_hint">Тепер ви можете переглядати приватно, і інші люди, які використовують цей пристрій, не бачитимуть вашу активність. Wisp не зберігатиме вашу історію переглядів, файли cookie та дані сайту, інформацію, введену у форми.\n\nОднак завантаження та закладки будуть збережені. Вашу активність можуть бачити веб-сайти, які ви відвідуєте, ваша організація чи постачальник послуг Інтернету.</string>
+    <string-array name="home_page_modes">
+    <item>Домашня Wisp</item>
+    <item>Пошукова система</item>
+    <item>Користувацька</item>
+    <item>Пуста</item>
+  </string-array>
+</resources>

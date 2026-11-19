@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Lumen app icon foreground: ring, bright core and light rays (inside the 66dp safe zone) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <path android:fillColor="#00000000" android:strokeColor="#FFFFFF" android:strokeWidth="3.4"
+        android:pathData="M40.5,54 a13.5,13.5 0 1,0 27,0 a13.5,13.5 0 1,0 -27,0" />
+    <path android:fillColor="#FFFFFF"
+        android:pathData="M47.6,54 a6.4,6.4 0 1,0 12.8,0 a6.4,6.4 0 1,0 -12.8,0" />
+    <path android:fillColor="#00000000" android:strokeColor="#FFFFFF" android:strokeWidth="3.2"
+        android:strokeLineCap="round" android:pathData="M72.02,61.46 L78.48,64.14 M61.46,72.02 L63.38,76.64 M46.54,72.02 L43.86,78.48 M35.98,61.46 L31.36,63.38 M35.98,46.54 L29.52,43.86 M46.54,35.98 L44.62,31.36 M61.46,35.98 L64.14,29.52 M72.02,46.54 L76.64,44.62" />
+</vector>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Wisp: the texts that name the app (everything else comes from main/res) -->
+<resources>
+    <string name="app_name">Wisp</string>
+    <string name="turn_on_unknown_sources_for_app">"لطفاً به Wisp اجازه دهید برنامه ها را از \"منابع ناشناخته\" در تنظیمات سیستم نصب کند"</string>
+    <string name="incognito_mode_hint">اکنون می توانید به صورت خصوصی مرور کنید و سایر افرادی که از این دستگاه استفاده می کنند فعالیت شما را نخواهند دید. Wisp تاریخچه مرور، کوکی ها و داده های سایت، اطلاعات وارد شده در فرم ها را ذخیره نمی کند.  با این حال، دانلودها و نشانک ها ذخیره خواهند شد. ممکن است فعالیت شما همچنان برای وب‌سایت‌هایی که بازدید می‌کنید، سازمان یا ارائه‌دهنده خدمات اینترنتی شما قابل مشاهده باشد.</string>
+</resources>
