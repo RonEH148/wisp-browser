@@ -52,12 +52,17 @@ object LumenCrashLog {
         val firstLines = text.lineSequence().drop(3).take(6).joinToString("\n")
         AlertDialog.Builder(activity)
             .setTitle("${com.phlox.tvwebbrowser.Brand.NAME} closed unexpectedly last time")
-            .setMessage("If it happens again, tap Copy details and send them so it can be fixed.\n\n$firstLines")
+            .setMessage("If it happens again, tap Copy details and send them so it can be fixed." +
+                    (if (WispLog.enabled) " (Also in Settings → About Wisp → Diagnostics.)" else "") + "\n\n$firstLines")
             .setPositiveButton(android.R.string.ok, null)
             .setNeutralButton("Copy details") { _, _ ->
-                val cm = activity.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                cm.setPrimaryClip(ClipData.newPlainText("Lumen crash", text))
-                Toast.makeText(activity, "Copied", Toast.LENGTH_SHORT).show()
+                //Wisp: the whole diagnostics log (device, memory, what happened before the crash)
+                if (WispLog.enabled) WispLog.copyReport(activity)
+                else {
+                    val cm = activity.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                    cm.setPrimaryClip(ClipData.newPlainText("Lumen crash", text))
+                    Toast.makeText(activity, "Copied", Toast.LENGTH_SHORT).show()
+                }
             }
             .show()
     }

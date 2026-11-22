@@ -1,0 +1,6 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Permission test</title></head><body><h1>Permission test</h1>
+<p><button id="geo" style="font-size:20px;padding:14px" onclick="navigator.geolocation.getCurrentPosition(function(){r('location: GIVEN')},function(e){r('location: REFUSED '+e.code)})">Ask location</button></p>
+<p><button id="cam" style="font-size:20px;padding:14px" onclick="navigator.mediaDevices.getUserMedia({video:true}).then(function(){r('camera: GIVEN')},function(e){r('camera: REFUSED '+e.name)})">Ask camera</button></p>
+<p><button id="mic" style="font-size:20px;padding:14px" onclick="navigator.mediaDevices.getUserMedia({audio:true}).then(function(){r('microphone: GIVEN')},function(e){r('microphone: REFUSED '+e.name)})">Ask microphone</button></p>
+<p><button id="noti" style="font-size:20px;padding:14px" onclick="if(window.Notification)Notification.requestPermission().then(function(p){r('notifications: '+p)});else r('notifications: none')">Ask notifications</button></p>
+<p id="r">permission: none</p><script>function r(t){document.getElementById('r').textContent=t}</script></body></html>

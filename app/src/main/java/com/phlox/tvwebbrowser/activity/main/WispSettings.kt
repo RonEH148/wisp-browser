@@ -83,7 +83,8 @@ class WispSettings(
         SITES(R.string.wisp_set_sites),
         SITE(R.string.wisp_set_sites),
         SECURITY(R.string.wisp_set_security),
-        ABOUT(R.string.wisp_set_about)
+        ABOUT(R.string.wisp_set_about),
+        DIAG(R.string.wisp_diag)
     }
 
     private val vpnObserver: (SofaVpn.Status) -> Unit = { if (pages.lastOrNull() == Page.VPN || pages.lastOrNull() == Page.MAIN) render() }
@@ -188,6 +189,7 @@ class WispSettings(
             Page.SITE -> sitePage(siteShown)
             Page.SECURITY -> securityPage()
             Page.ABOUT -> aboutPage()
+            Page.DIAG -> diagPage()
         }
         scroll.post { scroll.scrollTo(0, y) }
     }
@@ -450,10 +452,6 @@ class WispSettings(
     // ---------------- security & backup ----------------
 
     private fun securityPage() {
-        header(R.string.wisp_set_lock)
-        //saved passwords always open behind the fingerprint / screen lock; filling in logins doesn't ask
-        note(if (WispSecurity.deviceSecure(activity)) R.string.wisp_set_lock_passwords_note
-            else R.string.wisp_set_lock_no_screen_lock)
         header(R.string.wisp_set_backup)
         action(R.string.wisp_set_backup_now, str(R.string.wisp_set_backup_now_sum)) {
             dialog.dismiss()
@@ -546,6 +544,7 @@ class WispSettings(
     }
 
     private fun aboutPage() {
+        nav(R.drawable.ic_wisp_diag, R.string.wisp_diag, str(R.string.wisp_diag_sum), Page.DIAG)
         action(R.string.wisp_set_version, "${BuildConfig.VERSION_NAME} · build ${BuildConfig.VERSION_CODE}\n" +
                 str(R.string.wisp_set_engine_s, WebEngineFactory.getWebEngineVersionString()), enabled = false) {}
         header(R.string.wisp_set_updates)
@@ -568,6 +567,66 @@ class WispSettings(
             dialog.dismiss()
             activity.navigate("https://github.com/truefedex/tv-bro/blob/master/LICENSE.md")
         }
+    }
+
+    private fun diagPage() {
+        val log = com.phlox.tvwebbrowser.sofa.WispLog
+        log.flush()
+        val lines = log.lines(activity)
+        val errors = lines.count { it.startsWith("E ") && !it.contains("[check]") }
+        val checks = lines.count { it.contains("[check]") }
+        note(R.string.wisp_diag_note)
+        val last = log.lastProblem(activity)?.lineSequence()?.take(3)?.joinToString("\n")?.take(400)
+        row(str(R.string.wisp_diag_last_problem), last ?: str(R.string.wisp_diag_none), enabled = false, onClick = null)
+        row(str(R.string.wisp_diag_counts_s, lines.size, errors, checks), null, enabled = false, onClick = null)
+        action(R.string.wisp_diag_copy, str(R.string.wisp_diag_copy_sum)) {
+            copyText(log.report(activity))
+            Toast.makeText(activity, R.string.wisp_diag_copied, Toast.LENGTH_SHORT).show()
+        }
+        action(R.string.wisp_diag_share, str(R.string.wisp_diag_share_sum)) {
+            log.flush()
+            val pics = com.phlox.tvwebbrowser.sofa.WispSnapshot.sharePictures(activity)
+            val send = (if (pics.isEmpty()) android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/plain")
+                else android.content.Intent(android.content.Intent.ACTION_SEND_MULTIPLE).setType("image/jpeg")
+                    .putParcelableArrayListExtra(android.content.Intent.EXTRA_STREAM, pics)
+                    .addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION))
+                .putExtra(android.content.Intent.EXTRA_SUBJECT, "Wisp diagnostics")
+                .putExtra(android.content.Intent.EXTRA_TEXT, log.report(activity))
+            try {
+                activity.startActivity(android.content.Intent.createChooser(send, str(R.string.wisp_diag_share)))
+            } catch (e: Exception) {
+                Toast.makeText(activity, e.message ?: "", Toast.LENGTH_SHORT).show()
+            }
+        }
+        action(R.string.wisp_diag_report, str(R.string.wisp_diag_report_sum)) {
+            //the picture is of the browser behind Settings; Settings' own layout goes in as text
+            activity.reportProblem(dialog.window) { render() }
+        }
+        switch(R.string.wisp_diag_full, R.string.wisp_diag_full_sum, log.fullAddresses) { log.fullAddresses = it }
+        action(R.string.wisp_diag_clear, null, danger = true) {
+            AlertDialog.Builder(activity)
+                .setMessage(R.string.wisp_diag_clear_q)
+                .setPositiveButton(R.string.wisp_diag_clear) { _, _ ->
+                    log.clear(activity)
+                    scroll.postDelayed({ render() }, 300)
+                }
+                .setNegativeButton(android.R.string.cancel, null)
+                .show()
+        }
+        header(R.string.wisp_diag_recent)
+        val t = TextView(activity)
+        t.text = lines.takeLast(60).reversed().joinToString("\n").ifEmpty { str(R.string.wisp_diag_none) }
+        t.typeface = Typeface.MONOSPACE
+        t.textSize = 11f
+        t.setTextColor(color(R.color.wisp_text_secondary))
+        t.setTextIsSelectable(true)
+        t.setPadding(px(20f), px(4f), px(20f), px(24f))
+        content.addView(t)
+    }
+
+    private fun copyText(text: String) {
+        val cm = activity.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+        cm.setPrimaryClip(android.content.ClipData.newPlainText("Wisp diagnostics", text))
     }
 
     // ---------------- actions ----------------

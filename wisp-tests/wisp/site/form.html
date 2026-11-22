@@ -1,0 +1,7 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Form test</title></head><body><h1>Form test</h1>
+<p><input id="name" placeholder="Your name" style="font-size:20px;width:90%"></p>
+<p><textarea id="ta" placeholder="Long text" style="font-size:18px;width:90%;height:120px"></textarea></p>
+<p><select id="sel" style="font-size:20px"><option>Apple</option><option>Banana</option><option>Cherry</option></select></p>
+<p><input type="checkbox" id="cb"> <label for="cb">Tick me</label></p>
+<p><input type="date" id="date" style="font-size:20px"></p>
+<p id="r">typed: none</p><script>document.getElementById('name').oninput=function(e){document.getElementById('r').textContent='typed: '+e.target.value}</script></body></html>

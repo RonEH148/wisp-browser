@@ -1,16 +1,39 @@
 name: Build Wisp
 # Builds Wisp (the phone browser) from wisp-source.zip and publishes it as a release:
 #   Wisp-<wispVersionCode>.apk  (tag wisp-v…)
+# Then tests it on three Android emulators (phone Android 14, tablet Android 15, phone Android 9).
+# Each run page lists "wisp-test-<device>" (report, screenshots, logs) and "wisp-video-<device>"
+# under Artifacts. A failed test doesn't stop the release. The same test runs on your own
+# computer too: see wisp-tests/README.md.
 # Upload wisp-source.zip to the repository root to start it, or run it by hand (Actions → Run workflow).
 on:
   push:
     paths: ['wisp-source.zip', '.github/workflows/build-wisp.yml']
   workflow_dispatch:
+    inputs:
+      test:
+        description: 'Run the emulator test after the build'
+        type: boolean
+        default: true
+      suites:
+        description: 'Only these test suites (comma-separated, empty = all)'
+        type: string
+        default: ''
+      runner:
+        description: 'Machine for the test (ubuntu-latest, or the label of your own runner)'
+        type: string
+        default: 'ubuntu-latest'
 permissions:
   contents: write
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD || secrets.STORE_PASSWORD || secrets.SIGNING_STORE_PASSWORD }}
+      KEY_ALIAS: ${{ secrets.KEY_ALIAS || secrets.SIGNING_KEY_ALIAS }}
+      KEY_PASSWORD: ${{ secrets.KEY_PASSWORD || secrets.SIGNING_KEY_PASSWORD }}
+    outputs:
+      ok: ${{ steps.check.outputs.ok }}
     steps:
       - uses: actions/checkout@v4
       - name: Is the source zip there?
@@ -21,6 +44,20 @@ jobs:
       - uses: actions/setup-java@v4
         if: steps.check.outputs.ok == 'true'
         with: { java-version: '21', distribution: 'temurin' }
+      - name: Signing key from the repository secrets
+        if: steps.check.outputs.ok == 'true'
+        env:
+          KS: ${{ secrets.KEYSTORE_BASE64 || secrets.SIGNING_KEY_BASE64 || secrets.SIGNING_KEY || secrets.KEYSTORE }}
+        run: |
+          if [ -z "$KS" ]; then
+            echo "::error::No signing key. Add these under Settings > Secrets and variables > Actions: KEYSTORE_BASE64 (the .jks file as base64), KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD"
+            exit 1
+          fi
+          printf '%s' "$KS" | tr -d ' \r\n' | base64 -d > "$RUNNER_TEMP/release.jks"
+          echo "KEYSTORE_PATH=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+          FP=$(keytool -list -v -keystore "$RUNNER_TEMP/release.jks" -storepass "$KEYSTORE_PASSWORD" 2>/dev/null | grep -m1 'SHA256:' | awk '{print $2}')
+          if [ -z "$FP" ]; then echo "::error::The key or KEYSTORE_PASSWORD secret is wrong (keytool could not open the key)"; exit 1; fi
+          echo "Signing key SHA-256: $FP"
       - name: Unpack the source
         if: steps.check.outputs.ok == 'true'
         run: |
@@ -44,3 +81,75 @@ jobs:
           body: Install Wisp-${{ steps.wisp.outputs.vc }}.apk on your phone (Wisp can also install it itself from Settings → About → Check for updates).
           files: out-wisp/*.apk
           make_latest: false
+      - uses: actions/upload-artifact@v4
+        if: steps.check.outputs.ok == 'true'
+        with:
+          name: wisp-apk
+          path: out-wisp/*.apk
+          retention-days: 3
+
+  test:
+    needs: build
+    if: needs.build.outputs.ok == 'true' && (github.event_name != 'workflow_dispatch' || inputs.test)
+    runs-on: ${{ inputs.runner || 'ubuntu-latest' }}
+    timeout-minutes: 240
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: phone-android14, api: 34, profile: pixel_6 }
+          - { name: tablet-android15, api: 35, profile: pixel_c }
+          - { name: phone-android9, api: 28, profile: pixel_3a }
+    steps:
+      - uses: actions/checkout@v4
+      - name: Unpack the tests
+        run: unzip -q -o wisp-source.zip 'sofabrowse/wisp-tests/*' -d src
+      - uses: actions/download-artifact@v4
+        with:
+          name: wisp-apk
+          path: apk
+      - uses: actions/setup-java@v4
+        with: { java-version: '21', distribution: 'temurin' }
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - name: Tools for the test
+        run: python -m pip install --quiet pillow qrcode
+      - name: Enable hardware acceleration for the emulator
+        run: |
+          if [ -e /dev/kvm ]; then
+            echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+            sudo udevadm control --reload-rules
+            sudo udevadm trigger --name-match=kvm
+          fi
+      - name: Test Wisp (${{ matrix.name }})
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ matrix.api }}
+          target: google_apis
+          arch: x86_64
+          profile: ${{ matrix.profile }}
+          disable-animations: true
+          emulator-boot-timeout: 1200
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -no-snapshot
+          script: python src/sofabrowse/wisp-tests/run.py --apk "$(ls apk/*.apk | head -1)" --out results-${{ matrix.name }} --serial emulator-5554 ${{ inputs.suites && format('--only {0}', inputs.suites) || '' }}
+      - name: Summary
+        if: always()
+        run: |
+          f=results-${{ matrix.name }}/report.md
+          if [ -f "$f" ]; then head -c 60000 "$f" >> "$GITHUB_STEP_SUMMARY"; else echo "No report for ${{ matrix.name }} - see the log above." >> "$GITHUB_STEP_SUMMARY"; fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: wisp-test-${{ matrix.name }}
+          path: |
+            results-${{ matrix.name }}
+            !results-${{ matrix.name }}/video
+          retention-days: 14
+          if-no-files-found: ignore
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: wisp-video-${{ matrix.name }}
+          path: results-${{ matrix.name }}/video
+          retention-days: 7
+          if-no-files-found: ignore

@@ -440,7 +440,15 @@ open class WebViewEx(context: Context, val callback: Callback, val jsInterface: 
             override fun onConsoleMessage(consoleMessage: ConsoleMessage): Boolean {
                 val msg: String = "(" + consoleMessage.sourceId() + "[" + consoleMessage.lineNumber() + "]): " + consoleMessage.message()
                 when (consoleMessage.messageLevel()) {
-                    ConsoleMessage.MessageLevel.ERROR -> Log.e(WEB_VIEW_TAG, msg)
+                    ConsoleMessage.MessageLevel.ERROR -> {
+                        Log.e(WEB_VIEW_TAG, msg)
+                        //errors from Wisp's own scripts (they run without a source file) or the custom script
+                        if (Brand.phone && (consoleMessage.sourceId().isNullOrEmpty() ||
+                                    consoleMessage.message().contains("custom script"))) {
+                            com.phlox.tvwebbrowser.sofa.WispLog.mismatch("script error on " +
+                                    com.phlox.tvwebbrowser.sofa.WispLog.site(url), consoleMessage.message().take(200))
+                        }
+                    }
                     ConsoleMessage.MessageLevel.WARNING -> Log.w(WEB_VIEW_TAG, msg)
                     else -> Log.i(WEB_VIEW_TAG, msg)
                 }
@@ -482,6 +490,9 @@ open class WebViewEx(context: Context, val callback: Callback, val jsInterface: 
                 //(e.g. it ran out of memory playing a very high-bitrate video)
                 Log.e(TAG, "Web page process gone, crashed: ${detail.didCrash()}")
                 val failed = currentOriginalUrl?.toString()
+                com.phlox.tvwebbrowser.sofa.WispLog.error("page", "page process " +
+                        (if (detail.didCrash()) "crashed" else "was closed by Android (memory)") +
+                        " on ${com.phlox.tvwebbrowser.sofa.WispLog.site(failed)}")
                 uiHandler.post { callback.onRenderProcessGone(failed) }
                 return true
             }
@@ -587,6 +598,7 @@ open class WebViewEx(context: Context, val callback: Callback, val jsInterface: 
             override fun onPageStarted(view: WebView, url: String, favicon: Bitmap?) {
                 super.onPageStarted(view, url, favicon)
                 Log.d(TAG, "onPageStarted url: $url")
+                if (Brand.phone && url.startsWith("http")) com.phlox.tvwebbrowser.sofa.WispLog.pageStarted(url)
                 currentOriginalUrl = url.toUri()
                 mediaLog.clear()
                 pageDeband = false
@@ -606,6 +618,7 @@ open class WebViewEx(context: Context, val callback: Callback, val jsInterface: 
                     pendingUpgradeOriginal = null
                 }
                 Log.d(TAG, "onPageFinished url: $url")
+                if (Brand.phone && url != null && url.startsWith("http")) checkIdentity(url)
                 callback.onPageFinished(url)
                 if (com.phlox.tvwebbrowser.Brand.phone && (cleanMode || verificationOnPage)) startChallengeWatch()
                 if (cleanMode) {
@@ -632,6 +645,8 @@ open class WebViewEx(context: Context, val callback: Callback, val jsInterface: 
 
             override fun onReceivedSslError(view: WebView, handler: SslErrorHandler, error: SslError) {
                 Log.e(TAG, "onReceivedSslError url: ${error.url}")
+                if (Brand.phone) com.phlox.tvwebbrowser.sofa.WispLog.warn("load",
+                    "certificate problem ${error.primaryError} on ${com.phlox.tvwebbrowser.sofa.WispLog.site(error.url)}")
                 if (trustSsl && lastSSLError?.certificate?.toString()?.equals(error.certificate.toString()) == true) {
                     trustSsl = false
                     lastSSLError = null
@@ -653,6 +668,8 @@ open class WebViewEx(context: Context, val callback: Callback, val jsInterface: 
                 super.onReceivedError(view, request, error)
                 if (!request.isForMainFrame) return
                 if (error.errorCode == ERROR_UNSUPPORTED_SCHEME) return
+                if (Brand.phone) com.phlox.tvwebbrowser.sofa.WispLog.warn("load", "could not open " +
+                        "${com.phlox.tvwebbrowser.sofa.WispLog.site(request.url.toString())}: error ${error.errorCode} ${error.description}")
                 //Wisp: the site has no https:// version (and the name does exist): back to http://
                 if (error.errorCode != ERROR_HOST_LOOKUP && httpsFirstFallback(request.url.toString())) return
                 showLoadErrorPage(request.url.toString(), error.errorCode, error.description?.toString() ?: "")
@@ -1453,6 +1470,16 @@ small{opacity:.6}</style></head><body><div class="c"><h1>Can't open this site</h
      */
     private val uaSwitches = ArrayList<Long>()
 
+    /** Diagnostics: the page loaded with the identity its "Desktop site" switch asks for? */
+    private fun checkIdentity(url: String) {
+        val host = try { url.toUri().host } catch (e: Exception) { null } ?: return
+        val want = isDesktopUa(userAgentFor(host))
+        val got = isDesktopUa(settings.userAgentString ?: "")
+        if (want != got) com.phlox.tvwebbrowser.sofa.WispLog.mismatch("Desktop site switch vs page",
+            "${com.phlox.tvwebbrowser.sofa.WispLog.site(url)} should load as ${if (want) "desktop" else "mobile"}, " +
+                    "loaded as ${if (got) "desktop" else "mobile"}")
+    }
+
     private fun reloadWithUserAgentIfNeeded(url: String): Boolean {
         if (!Brand.phone || !url.startsWith("http")) return false
         val host = try { url.toUri().host } catch (e: Exception) { null }
@@ -1462,8 +1489,14 @@ small{opacity:.6}</style></head><body><div class="c"><h1>Can't open this site</h
         //never a loop: at most 3 such switches in 10 seconds
         val now = android.os.SystemClock.uptimeMillis()
         uaSwitches.removeAll { now - it > 10_000 }
-        if (uaSwitches.size >= 3) return false
+        if (uaSwitches.size >= 3) {
+            com.phlox.tvwebbrowser.sofa.WispLog.warn("loop", "desktop/mobile switch stopped on " +
+                    "${com.phlox.tvwebbrowser.sofa.WispLog.site(url)}: 3 switches in 10 s")
+            return false
+        }
         uaSwitches.add(now)
+        com.phlox.tvwebbrowser.sofa.WispLog.event("page", "reload as " +
+                (if (isDesktopUa(userAgentFor(host))) "desktop" else "mobile") + " site: ${com.phlox.tvwebbrowser.sofa.WispLog.site(url)}")
         uiHandler.post {
             stopLoading()
             currentOriginalUrl = url.toUri()

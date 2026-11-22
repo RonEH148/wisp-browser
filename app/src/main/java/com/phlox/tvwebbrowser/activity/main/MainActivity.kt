@@ -198,6 +198,10 @@ open class MainActivity : AppCompatActivity(), ActionBar.Callback {
         vb = ActivityMainBinding.inflate(layoutInflater)
         setContentView(vb.root)
         com.phlox.tvwebbrowser.sofa.LumenCrashLog.showIfAny(this)
+        if (com.phlox.tvwebbrowser.Brand.phone) {
+            com.phlox.tvwebbrowser.sofa.WispLog.tabCount = { tabsModel.tabsStates.size }
+            com.phlox.tvwebbrowser.sofa.WispLog.showClosedNoticeIfAny(this)
+        }
         if (TVBro.instance.repairDone) {
             TVBro.instance.repairDone = false
             Toast.makeText(this, "Web engine repaired. If videos still break up, restart the TV completely.", Toast.LENGTH_LONG).show()
@@ -405,6 +409,7 @@ open class MainActivity : AppCompatActivity(), ActionBar.Callback {
                     val stillHidden = ViewCompat.getRootWindowInsets(vb.rlRoot)?.isVisible(WindowInsetsCompat.Type.ime()) != true
                     if (stillHidden && hasWindowFocus() && vb.vActionBar.isAddressEditing()) vb.vActionBar.endAddressEditing()
                 }, 300)
+                scheduleUiCheck("keyboard closed", 900)
             }
             keyboardWasVisible = imeVisible
             WindowInsetsCompat.CONSUMED
@@ -561,6 +566,7 @@ open class MainActivity : AppCompatActivity(), ActionBar.Callback {
     override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
         super.onConfigurationChanged(newConfig)
         lastConfigChange = android.os.SystemClock.uptimeMillis()
+        if (com.phlox.tvwebbrowser.Brand.phone) scheduleUiCheck("turned", 1200)
     }
 
     /** Wisp: search engine picked in Settings: the logo left of the address follows. */
@@ -570,6 +576,175 @@ open class MainActivity : AppCompatActivity(), ActionBar.Callback {
     }
 
     /** Wisp: the tab counter counts tabs with a site open; a tab on the start page doesn't count. */
+    /** Diagnostics, a moment after a page loaded: the address bar and the ad blocker agree with the page? */
+    private fun checkPageConsistency(tab: WebTabState) {
+        vb.rlRoot.postDelayed({
+            if (tabsModel.currentTab.value != tab || isOnHomePage(tab)) return@postDelayed
+            val real = tab.webEngine.url ?: return@postDelayed
+            if (!real.startsWith("http")) return@postDelayed
+            val log = com.phlox.tvwebbrowser.sofa.WispLog
+            if (!vb.vActionBar.isAddressEditing()) {
+                val held = vb.vActionBar.heldAddress()
+                fun norm(u: String) = u.substringBefore('#').removeSuffix("/")
+                if (norm(held) != norm(real)) log.mismatch("address bar vs page",
+                    "bar has ${log.site(held)}${if (log.site(held) == log.site(real)) " (other path)" else ""}, page is ${log.site(real)}")
+            }
+            if (!isAdBlockOnForTab(tab) && tab.blockedAds > 0) log.mismatch("ad blocker switch vs page",
+                "${log.site(real)}: ad blocker off but ${tab.blockedAds} requests were blocked")
+            uiSelfCheck("page loaded")
+        }, 1500)
+    }
+
+    // ---------------- Wisp: UI self-checks and problem reports ----------------
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        //back from a sheet, dialog, settings or another app
+        if (hasFocus && com.phlox.tvwebbrowser.Brand.phone) scheduleUiCheck("back on screen", 700)
+    }
+
+    private val uiCheckRunnable = Runnable { uiSelfCheck(pendingUiCheckReason) }
+    private var pendingUiCheckReason = ""
+
+    private fun scheduleUiCheck(reason: String, delay: Long) {
+        pendingUiCheckReason = reason
+        vb.rlRoot.removeCallbacks(uiCheckRunnable)
+        vb.rlRoot.postDelayed(uiCheckRunnable, delay)
+    }
+
+    private val uiSnapshotAt = HashMap<String, Long>()
+
+    private fun uiProblem(kind: String, detail: String, reason: String) {
+        val log = com.phlox.tvwebbrowser.sofa.WispLog
+        log.mismatch("UI: $kind", "$detail (after: $reason)")
+        //the layout as text (no picture) once per kind every 10 minutes, for the report
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (now - (uiSnapshotAt[kind] ?: -900_000L) > 600_000L) {
+            uiSnapshotAt[kind] = now
+            com.phlox.tvwebbrowser.sofa.WispSnapshot.save(this, "ui", "UI CHECK $kind: $detail (after: $reason)", null)
+        }
+    }
+
+    /** Wisp's own screen, checked for the UI bugs it had (or could have). Problems go to the log. */
+    private fun uiSelfCheck(reason: String) {
+        if (!com.phlox.tvwebbrowser.Brand.phone || isFinishing || !hasWindowFocus()) return
+        try {
+            val ins = ViewCompat.getRootWindowInsets(vb.rlRoot)
+            val statusTop = if (ins?.isVisible(WindowInsetsCompat.Type.statusBars()) == true)
+                ins.getInsets(WindowInsetsCompat.Type.statusBars()).top else 0
+            val screenH = vb.rlRoot.rootView.height
+            val bar = vb.rlActionBar
+            val loc = IntArray(2)
+            bar.getLocationOnScreen(loc)
+            if (isFullscreen) {
+                if (ins?.isVisible(WindowInsetsCompat.Type.statusBars()) == true)
+                    uiProblem("status bar in fullscreen", "the status bar is still shown (${statusTop} px) during fullscreen", reason)
+                val r = IntArray(2)
+                vb.rlRoot.getLocationOnScreen(r)
+                if (r[1] > 2) uiProblem("gap above fullscreen", "fullscreen starts ${r[1]} px below the top", reason)
+                return
+            }
+            val moving = toolbarAnimator != null || android.os.SystemClock.uptimeMillis() < toolbarMovingUntil
+            if (toolbarShown && !moving) {
+                when {
+                    bar.visibility != View.VISIBLE -> uiProblem("toolbar missing", "toolbar should show but is ${if (bar.visibility == View.GONE) "gone" else "invisible"}", reason)
+                    bar.height <= 0 -> uiProblem("toolbar missing", "toolbar has no height", reason)
+                    kotlin.math.abs(bar.translationY) > 2f -> uiProblem("toolbar moved", "toolbar should show but is moved by ${bar.translationY.toInt()} px", reason)
+                    loc[1] + bar.height <= 0 || loc[1] >= screenH -> uiProblem("toolbar off screen", "toolbar at y=${loc[1]}, screen ${screenH} px high", reason)
+                    loc[1] < statusTop - 2 -> uiProblem("toolbar under the status bar", "toolbar top ${loc[1]} px, status bar ${statusTop} px", reason)
+                }
+            }
+            if (!toolbarShown && !moving && !canAutoHideToolbar())
+                uiProblem("toolbar hidden", "toolbar hidden although it can't auto-hide here", reason)
+            //the bar's parts: visible ones must have a size
+            if (toolbarShown && vb.vActionBar.visibility == View.VISIBLE) {
+                val parts = listOf("address" to findViewById<View>(R.id.etUrl), "menu" to findViewById<View>(R.id.ibMenu),
+                    "tabs" to findViewById<View>(R.id.tvTabCount), "reload" to findViewById<View>(R.id.ibReload),
+                    "site button" to findViewById<View>(R.id.ibSiteData))
+                for ((name, v) in parts) {
+                    if (v != null && v.isShown && (v.width <= 0 || v.height <= 0))
+                        uiProblem("zero-size button", "$name is shown with size ${v.width}x${v.height}", reason)
+                }
+                val url = findViewById<View>(R.id.etUrl)
+                if (url != null && url.isShown && url.width in 1 until (24 * resources.displayMetrics.density).toInt())
+                    uiProblem("address bar squeezed", "address field only ${url.width} px wide", reason)
+            }
+            //typing mode without a keyboard (the bar loses its buttons): looked at again 2 s later
+            if (vb.vActionBar.isAddressEditing() && ins?.isVisible(WindowInsetsCompat.Type.ime()) != true) {
+                vb.rlRoot.postDelayed({
+                    val again = ViewCompat.getRootWindowInsets(vb.rlRoot)
+                    if (hasWindowFocus() && vb.vActionBar.isAddressEditing() && again?.isVisible(WindowInsetsCompat.Type.ime()) != true)
+                        uiProblem("typing mode without keyboard", "address bar in typing mode, keyboard closed", reason)
+                }, 2000)
+            }
+            //the page area
+            val page = tabsModel.currentTab.value?.webEngine?.getView()
+            if (page != null && page.isAttachedToWindow && (page.width <= 0 || page.height <= 0))
+                uiProblem("page area empty", "web page has size ${page.width}x${page.height}", reason)
+        } catch (e: Throwable) {
+            com.phlox.tvwebbrowser.sofa.WispLog.error("ui", "self-check failed", e)
+        }
+    }
+
+    /** Report a problem: a picture of the screen as it is now, the layout, then the person's words. */
+    fun reportProblem(over: android.view.Window? = null, after: (() -> Unit)? = null) {
+        com.phlox.tvwebbrowser.sofa.WispSnapshot.capture(this) { bmp -> showReportDialog(bmp, over, after) }
+    }
+
+    private fun showReportDialog(picture: Bitmap?, over: android.view.Window?, after: (() -> Unit)?) {
+        val cats = listOf(R.string.wisp_diag_cat_crash, R.string.wisp_diag_cat_wrong, R.string.wisp_diag_cat_slow,
+            R.string.wisp_diag_cat_looks).map { getString(it) }
+        var picked = 1
+        val pad = (20 * resources.displayMetrics.density).toInt()
+        val box = android.widget.LinearLayout(this)
+        box.orientation = android.widget.LinearLayout.VERTICAL
+        box.setPadding(pad, pad / 5, pad, 0)
+        val group = android.widget.RadioGroup(this)
+        cats.forEachIndexed { i, label ->
+            val rb = android.widget.RadioButton(this)
+            rb.text = label
+            rb.id = 1000 + i
+            group.addView(rb)
+        }
+        group.check(1000 + picked)
+        group.setOnCheckedChangeListener { _, id -> picked = id - 1000 }
+        box.addView(group)
+        val edit = android.widget.EditText(this)
+        edit.hint = getString(R.string.wisp_diag_report_hint)
+        edit.inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES or
+                android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE
+        edit.maxLines = 4
+        box.addView(edit)
+        if (picture != null) {
+            val note = TextView(this)
+            note.setText(R.string.wisp_diag_report_picture)
+            note.textSize = 12f
+            note.setPadding(0, pad / 3, 0, 0)
+            box.addView(note)
+        }
+        var sent = false
+        AlertDialog.Builder(this)
+            .setTitle(R.string.wisp_diag_report)
+            .setView(box)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                sent = true
+                val log = com.phlox.tvwebbrowser.sofa.WispLog
+                val cat = cats.getOrElse(picked) { cats[1] }
+                val text = edit.text.toString().trim()
+                log.userReport(this, cat, text)
+                com.phlox.tvwebbrowser.sofa.WispSnapshot.save(this, "report",
+                    "REPORT $cat: $text\n${log.versionLine(this)}\n${log.memoryLine(this)}", picture, over) { name ->
+                    log.event("report", "saved $name (" + (if (picture != null) "picture + " else "") + "layout)")
+                    log.copyReport(this)
+                    Toast.makeText(this, R.string.wisp_diag_reported, Toast.LENGTH_LONG).show()
+                    after?.invoke()
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .setOnDismissListener { if (!sent) picture?.recycle() }
+            .show()
+    }
+
     private fun updatePhoneTabCount() {
         if (!com.phlox.tvwebbrowser.Brand.phone) return
         vb.vActionBar.setTabCount(tabsModel.tabsStates.count { !isOnHomePage(it) })
@@ -619,6 +794,10 @@ open class MainActivity : AppCompatActivity(), ActionBar.Callback {
             WispSheets.MenuItem(R.drawable.ic_wisp_gif, getString(R.string.wisp_gif_tool)) { WispGif.openPicker(this) },
             WispSheets.MenuItem(R.drawable.ic_wisp_add_home, getString(R.string.wisp_add_to_home), enabled = onWeb) {
                 tab?.let { addToHomeScreen(it) }
+            },
+            //a picture of the screen as it is (once the menu has slid away) goes with the report
+            WispSheets.MenuItem(R.drawable.ic_wisp_diag, getString(R.string.wisp_diag_report)) {
+                vb.rlRoot.postDelayed({ reportProblem() }, 450)
             }
         )
         val tiles = listOf(
@@ -676,6 +855,11 @@ open class MainActivity : AppCompatActivity(), ActionBar.Callback {
             }
             WispSheets.TabCard(title, address, t == current, if (home) null else t.thumbnail, home)
         }
+        //diagnostics: the list and the tab button must say the same
+        val listed = cards.count { !it.home }
+        val shown = vb.vActionBar.shownTabCount()
+        if (shown != listed.toString() && !(listed > 99 && shown == ":D"))
+            com.phlox.tvwebbrowser.sofa.WispLog.mismatch("tab button vs tab list", "button shows $shown, list has $listed")
         val (_, setIcon) = WispSheets.showTabs(this, config.incognitoMode, cards,
             onPick = { i ->
                 tabs.getOrNull(i)?.let { t ->
@@ -2842,14 +3026,9 @@ open class MainActivity : AppCompatActivity(), ActionBar.Callback {
         }
     }
 
-    /** Saved passwords: shown after the fingerprint / screen lock when that is switched on. */
+    /** Saved passwords: open straight away (no fingerprint, PIN or other lock - as the user wants). */
     fun openPasswordManager() {
-        //Wisp: always behind the fingerprint / screen lock (filling in logins on websites isn't)
-        if (com.phlox.tvwebbrowser.Brand.phone && WispSecurity.deviceSecure(this)) {
-            WispSecurity.authenticate(this, getString(R.string.wisp_unlock_passwords)) { ok ->
-                if (ok) com.phlox.tvwebbrowser.sofa.SofaPasswords.showManager(this)
-            }
-        } else com.phlox.tvwebbrowser.sofa.SofaPasswords.showManager(this)
+        com.phlox.tvwebbrowser.sofa.SofaPasswords.showManager(this)
     }
 
     // ---------------- Wisp: back up and restore ----------------
@@ -4039,6 +4218,7 @@ open class MainActivity : AppCompatActivity(), ActionBar.Callback {
             //(Wisp shows them in its tab grid)
             if (!com.phlox.tvwebbrowser.Brand.phone) tabsModel.tabsStates.onEach { it.thumbnail = null }
             updatePhoneTabCount()
+            if (com.phlox.tvwebbrowser.Brand.phone) checkPageConsistency(tab)
         }
 
         override fun onPageCertificateError(url: String?) {

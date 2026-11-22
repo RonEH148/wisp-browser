@@ -65,6 +65,10 @@ class DownloadService : Service() {
                 //trying again only helps with network trouble or a busy server; a refusal (403, 404…)
                 //stays a refusal - it kept the notification "waiting" for many minutes
                 val worthRetrying = responseCode == 0 || responseCode >= 500 || responseCode == 408 || responseCode == 429
+                com.phlox.tvwebbrowser.sofa.WispLog.warn("download", "failed: ${task.downloadInfo.filename} from " +
+                        "${com.phlox.tvwebbrowser.sofa.WispLog.site(task.downloadInfo.url)} · " +
+                        (if (responseCode > 0) "server answered $responseCode $responseMessage" else responseMessage) +
+                        (if (worthRetrying) " · will retry" else ""))
                 if (worthRetrying) scheduleRetry(task.downloadInfo)
                 else try {
                     android.widget.Toast.makeText(this@DownloadService,
@@ -394,6 +398,8 @@ class DownloadService : Service() {
     }
 
     fun startDownload(download: Download) {
+        com.phlox.tvwebbrowser.sofa.WispLog.event("download", "start ${download.filename} from " +
+                com.phlox.tvwebbrowser.sofa.WispLog.site(download.url))
         //e.g. the USB drive is unplugged: saved to internal storage instead (openOutput). Checked off
         //the screen's thread: a busy or hanging drive must not freeze the browser
         executor.execute {
@@ -477,6 +483,7 @@ class DownloadService : Service() {
      * opens the file when tapped (it can be swiped away).
      */
     private fun confirmDone(info: Download) {
+        com.phlox.tvwebbrowser.sofa.WispLog.event("download", "done ${info.filename} (${info.bytesReceived / 1024} kB)")
         try {
             android.widget.Toast.makeText(this, "Downloaded: " + info.filename, android.widget.Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {}

@@ -1,0 +1,5 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Dialogs test</title></head><body><h1>Dialogs test</h1>
+<p><button id="a" style="font-size:20px;padding:14px" onclick="alert('HELLO ALERT');document.getElementById('r').textContent='after alert'">Alert</button></p>
+<p><button id="c" style="font-size:20px;padding:14px" onclick="document.getElementById('r').textContent='confirm: '+confirm('CONFIRM THIS?')">Confirm</button></p>
+<p><button id="p" style="font-size:20px;padding:14px" onclick="document.getElementById('r').textContent='prompt: '+prompt('PROMPT TEXT?','abc')">Prompt</button></p>
+<p id="r">result: none</p></body></html>

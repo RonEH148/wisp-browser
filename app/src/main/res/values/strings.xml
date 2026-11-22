@@ -732,4 +732,32 @@
     <string name="wisp_site_unhide">Show hidden elements</string>
     <string name="wisp_download_error_s">The download couldn\'t start: %1$s</string>
     <string name="wisp_download_failed">This can\'t be downloaded</string>
+    <!-- Wisp diagnostics -->
+    <string name="wisp_diag">Diagnostics</string>
+    <string name="wisp_diag_sum">A log of crashes, closures, memory and errors to copy when reporting a problem</string>
+    <string name="wisp_diag_note">Wisp notes crashes, why Android closed it, memory warnings, failed pages, reload loops, download and VPN errors, things that should agree but don\'t, and checks its own screen for layout problems (toolbar missing, under the status bar…). For anything it can\'t see, use Report a problem (also in the ⋮ menu): it saves a picture of the screen. Site names only (no full addresses unless switched on below), never typed text, cookies or passwords. Kept on this phone for 7 days, also after Quit.</string>
+    <string name="wisp_diag_last_problem">Last crash or closure</string>
+    <string name="wisp_diag_none">None</string>
+    <string name="wisp_diag_counts_s">%1$d entries · %2$d errors · %3$d inconsistencies</string>
+    <string name="wisp_diag_copy">Copy log</string>
+    <string name="wisp_diag_copy_sum">Device details, last crash, problems and the last 100 events</string>
+    <string name="wisp_diag_share">Share log</string>
+    <string name="wisp_diag_share_sum">The log with the screenshots of your last reports</string>
+    <string name="wisp_diag_report_picture">A picture of the screen and its layout go with the report (only on this phone until you copy or share the log).</string>
+    <string name="wisp_diag_report">Report a problem</string>
+    <string name="wisp_diag_report_sum">Say what went wrong: it goes into the log with what Wisp was doing</string>
+    <string name="wisp_diag_report_hint">What happened? (one line is enough)</string>
+    <string name="wisp_diag_cat_crash">Crash or closed by itself</string>
+    <string name="wisp_diag_cat_wrong">Something works wrong</string>
+    <string name="wisp_diag_cat_slow">Slow or out of memory</string>
+    <string name="wisp_diag_cat_looks">Looks wrong</string>
+    <string name="wisp_diag_reported">Noted. The log is copied: paste it in your message.</string>
+    <string name="wisp_diag_full">Full addresses in the log</string>
+    <string name="wisp_diag_full_sum">Off: only site names (example.com). On: whole addresses, for harder problems</string>
+    <string name="wisp_diag_clear">Clear the log</string>
+    <string name="wisp_diag_clear_q">Delete the whole diagnostics log?</string>
+    <string name="wisp_diag_recent">Recent events (newest first)</string>
+    <string name="wisp_diag_copied">Log copied</string>
+    <string name="wisp_diag_closed_title">Android closed Wisp last time</string>
+    <string name="wisp_diag_closed_msg">Reason: %1$s\n\nCopy the log and send it so it can be fixed. It is also in Settings → About Wisp → Diagnostics.</string>
 </resources>

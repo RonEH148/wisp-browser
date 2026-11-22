@@ -61,20 +61,37 @@ object WispSecurity {
         prompting = true
         val done: (Boolean) -> Unit = { ok -> prompting = false; done0(ok) }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            val prompt = android.hardware.biometrics.BiometricPrompt.Builder(a)
-                .setTitle(title)
-                .setAllowedAuthenticators(android.hardware.biometrics.BiometricManager.Authenticators.BIOMETRIC_WEAK or
-                        android.hardware.biometrics.BiometricManager.Authenticators.DEVICE_CREDENTIAL)
-                .build()
-            prompt.authenticate(CancellationSignal(), a.mainExecutor,
-                object : android.hardware.biometrics.BiometricPrompt.AuthenticationCallback() {
-                    override fun onAuthenticationSucceeded(result: android.hardware.biometrics.BiometricPrompt.AuthenticationResult?) {
-                        unlockedAt = SystemClock.elapsedRealtime()
-                        done(true)
-                    }
-                    override fun onAuthenticationError(errorCode: Int, errString: CharSequence?) { done(false) }
-                })
-        } else {
+            try {
+                val prompt = android.hardware.biometrics.BiometricPrompt.Builder(a)
+                    .setTitle(title)
+                    .setAllowedAuthenticators(android.hardware.biometrics.BiometricManager.Authenticators.BIOMETRIC_WEAK or
+                            android.hardware.biometrics.BiometricManager.Authenticators.DEVICE_CREDENTIAL)
+                    .build()
+                prompt.authenticate(CancellationSignal(), a.mainExecutor,
+                    object : android.hardware.biometrics.BiometricPrompt.AuthenticationCallback() {
+                        override fun onAuthenticationSucceeded(result: android.hardware.biometrics.BiometricPrompt.AuthenticationResult?) {
+                            unlockedAt = SystemClock.elapsedRealtime()
+                            done(true)
+                        }
+                        override fun onAuthenticationError(errorCode: Int, errString: CharSequence?) {
+                            if (errorCode != android.hardware.biometrics.BiometricPrompt.BIOMETRIC_ERROR_USER_CANCELED &&
+                                errorCode != android.hardware.biometrics.BiometricPrompt.BIOMETRIC_ERROR_CANCELED)
+                                com.phlox.tvwebbrowser.sofa.WispLog.warn("lock", "fingerprint/screen lock error $errorCode: $errString")
+                            done(false)
+                        }
+                    })
+                return
+            } catch (e: Throwable) {
+                //Wisp 20 and older crashed here (USE_BIOMETRIC was missing): never again - the
+                //screen-lock screen below needs no permission
+                com.phlox.tvwebbrowser.sofa.WispLog.error("lock", "fingerprint prompt failed, using the screen-lock screen", e)
+            }
+        }
+        confirmWithScreenLock(a, title, done)
+    }
+
+    private fun confirmWithScreenLock(a: Activity, title: String, done: (Boolean) -> Unit) {
+        try {
             val km = a.getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
             @Suppress("DEPRECATION")
             val intent = km.createConfirmDeviceCredentialIntent(title, null)
@@ -82,6 +99,10 @@ object WispSecurity {
             pendingCredential = done
             @Suppress("DEPRECATION")
             a.startActivityForResult(intent, REQUEST_CONFIRM_CREDENTIAL)
+        } catch (e: Throwable) {
+            com.phlox.tvwebbrowser.sofa.WispLog.error("lock", "screen-lock screen failed", e)
+            pendingCredential = null
+            done(false)
         }
     }
 

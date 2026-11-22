@@ -1,0 +1,9 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>WebRTC test</title></head><body><h1>WebRTC test</h1><p id="r">WEBRTC: waiting</p>
+<script>
+try{var pc=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'}]});var c=[];
+pc.createDataChannel('x');pc.onicecandidate=function(e){if(e.candidate&&e.candidate.candidate)c.push(e.candidate.candidate)};
+pc.createOffer().then(function(o){return pc.setLocalDescription(o)});
+setTimeout(function(){var ips=c.map(function(x){return x.split(' ')[4]});var typ=c.map(function(x){var m=x.match(/typ (\w+)/);return m?m[1]:'?'});
+document.getElementById('r').textContent='WEBRTC: '+c.length+' candidates; types '+(typ.join(',')||'none')+'; addresses '+(ips.join(',')||'none')},6000);
+}catch(e){document.getElementById('r').textContent='WEBRTC: error '+e}
+</script></body></html>

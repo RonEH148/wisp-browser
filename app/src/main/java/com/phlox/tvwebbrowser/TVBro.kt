@@ -64,6 +64,8 @@ class TVBro : Application(), Application.ActivityLifecycleCallbacks {
 
         instance = this
         com.phlox.tvwebbrowser.sofa.LumenCrashLog.install(this)
+        //Wisp: the diagnostics log (crashes, Android closing Wisp, memory, errors)
+        if (Brand.phone) com.phlox.tvwebbrowser.sofa.WispLog.install(this)
 
         AppContext.init(this, Config(getSharedPreferences(MAIN_PREFS_NAME, MODE_MULTI_PROCESS)))
         if (Brand.phone) setUpWispPrivateData()

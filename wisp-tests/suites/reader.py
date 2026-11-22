@@ -1,0 +1,110 @@
+from ._common import *
+
+@step('Reader view shows the article only')
+def _():
+    goto('/article.html', expect='A long test article')
+    menu('Reader view', wait=3)
+    shot('reader')
+    check(page_has('Paragraph 3', 6), 'article text not shown')
+    expect(not present(text='Footer links'), 'page footer still there (not reader view?)')
+    expect(not present(text='Sport'), 'page menu still there')
+    expect(present(text='A+') and present(text='A−') or present(text='A-'), 'no A−/A+ buttons')
+
+@step('Reader text size: A+ grows and is remembered')
+def _():
+    goto('/article.html', expect='A long test article')
+    menu('Reader view', wait=3)
+    check(page_has('Paragraph 1', 6), 'reader did not open')
+    h0 = text_height('Paragraph 1.')
+    for _ in range(2):
+        tap(text='A+')
+        sleep(0.8)
+    h1 = text_height('Paragraph 1.')
+    note('first paragraph height %s -> %s' % (h0, h1))
+    expect(h0 and h1 and h1 > h0, 'text did not grow')
+    close = find(text='✕') or find(text='×')
+    if close:
+        tap_xy(*close[0].center)
+    else:
+        back()
+    sleep(2)
+    menu('Reader view', wait=3)
+    h2 = text_height('Paragraph 1.')
+    note('after reopening: %s' % h2)
+    expect(h2 and h1 and abs(h2 - h1) <= 4, 'text size not remembered')
+    for _ in range(2):
+        tap(text='A−') if present(text='A−') else tap(text='A-')
+        sleep(0.5)
+
+@step('Reader ✕ goes back to the page')
+def _():
+    goto('/article.html', expect='A long test article')
+    menu('Reader view', wait=3)
+    close = find(text='✕') or find(text='×')
+    check(close, 'no ✕ button')
+    tap_xy(*close[0].center)
+    sleep(3)
+    check(page_has('Footer links', 5), 'page did not come back')
+
+@step('Reader on a page without an article says so')
+def _():
+    goto('/other.html', expect='Other page')
+    menu('Reader view', wait=2)
+    shot('no article')
+    note('texts: %s' % texts()[:8])
+    check(wisp_running(), 'Wisp stopped')
+
+@step('Save for offline, open it, open the live page, delete it')
+def _():
+    goto('/title?t=Offline%20test', expect='Offline test')
+    menu('Save for offline', wait=3)
+    menu('Saved pages', wait=2)
+    shot('saved list')
+    n = wait_for(timeout=4, text='Offline test')
+    check(n, 'saved page not in the list')
+    tap_xy(*n.center)
+    sleep(1)
+    o = find(text='Open', exact=True)
+    check(o, 'no Open option')
+    tap_xy(*o[0].center)
+    sleep(4)
+    check(page_has('Offline test', 5), 'saved page did not open')
+    a = address()
+    note('address of the saved page: %r' % a)
+    expect(a == 'Saved page', 'address should say "Saved page": %r' % a)
+    # works without internet
+    set_network(False)
+    try:
+        tap(rid='ibReload')
+        sleep(3)
+        expect(page_has('Offline test', 4), 'saved page needs the internet')
+    finally:
+        set_network(True)
+    menu('Saved pages', wait=2)
+    tap(text='Offline test')
+    o = find(text='Open the live page')
+    if o:
+        tap_xy(*o[0].center)
+        sleep(4)
+        expect('lvh.me' in (address() or ''), 'live page did not open: %r' % address())
+    menu('Saved pages', wait=2)
+    tap(text='Offline test')
+    d = find(text='Delete', exact=True)
+    check(d, 'no Delete option')
+    tap_xy(*d[0].center)
+    sleep(1)
+    press_button('Delete', 'OK', timeout=2)
+    menu('Saved pages', wait=2)
+    expect(not present(text='Offline test'), 'deleted page still listed')
+    back()
+
+@step('Saved pages survive Quit')
+def _():
+    goto('/title?t=Keep%20offline', expect='Keep offline')
+    menu('Save for offline', wait=3)
+    quit_wisp()
+    launch()
+    menu('Saved pages', wait=2)
+    expect(present(text='Keep offline'), 'saved page gone after Quit')
+    shot('saved after quit')
+    back()

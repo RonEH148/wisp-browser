@@ -26,4 +26,8 @@
     <string name="lumen_update_token_help">Your builds are in a private repository, so Wisp needs a read-only token to see them: on github.com → Settings → Developer settings → Fine-grained tokens → Generate, choose only this repository, and give it \"Contents: Read-only\". The token is stored encrypted on this device. Leave the field empty to keep the saved token.</string>
     <string name="lumen_auto_check_updates">Check for Wisp updates once a day</string>
     <string name="lumen_deband_site_added">Deband will switch on by itself on this site, in the page and in Wisp\'s player</string>
+    <string name="sofa_vpn_browser_only_desc">Off = all apps on the phone go through the VPN. Reconnect after changing</string>
+    <string name="sofa_vpn_no_file_picker">No file picker on this phone. Use \"Paste config\" instead</string>
+    <string name="sofa_vpn_not_supported">This phone doesn\'t support VPN apps</string>
+    <string name="sofa_vpn_scope_device">whole phone</string>
 </resources>

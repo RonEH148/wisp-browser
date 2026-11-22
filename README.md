@@ -7,7 +7,7 @@ Wisp is the phone version of my TV browser [Lumen](https://github.com/RonEH148/l
 ## Highlights
 - **Phone interface:** one slim top bar that hides while scrolling, bottom-sheet ⋮ menu, Material You colours on Android 12+
 - **Private by default:** HTTPS first, third-party cookies blocked, no Google Play services
-- **Lightweight:** 32-bit ARM build, small APK
+- **Lightweight:** small APK, 32- and 64-bit ARM
 - **Extras:** GIF maker for WebM/WebP videos, site info and permissions sheet, tab management
 - **Kept from Lumen:** ad and pop-up blocker, error pages, video player features
 

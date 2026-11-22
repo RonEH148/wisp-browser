@@ -367,6 +367,10 @@ class ActionBar @JvmOverloads constructor(
         vb.ibHistory.requestFocus()
     }
 
+    /** Diagnostics: what the bar shows (the tab button and the address the bar holds). */
+    fun shownTabCount(): String = vb.tvTabCount.text?.toString() ?: ""
+    fun heldAddress(): String = fullAddress
+
     fun isAddressEditing(): Boolean = vb.etUrl.hasFocus() || hiddenWhileEditing.isNotEmpty()
 
     /** Wisp: typing an address ended without Go: the field shows the page's address again, buttons come back. */

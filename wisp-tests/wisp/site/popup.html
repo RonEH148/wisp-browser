@@ -1,0 +1,6 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Popup test</title></head><body><h1>Popup test</h1>
+<p id="auto">auto popup: waiting</p>
+<p><button id="btn" style="font-size:22px;padding:20px" onclick="var w=window.open('/title?t=Popup%20window','_blank');document.getElementById('clicked').textContent='clicked popup: '+(w?'opened':'blocked')">Open a window</button></p>
+<p id="clicked">clicked popup: not yet</p>
+<script>setTimeout(function(){var w=window.open('/title?t=Auto%20popup','_blank');document.getElementById('auto').textContent='auto popup: '+(w?'OPENED':'BLOCKED')},800)</script>
+</body></html>

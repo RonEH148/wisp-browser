@@ -1,0 +1,133 @@
+from ._common import *
+
+@step('Counter: start page tabs do not count')
+def _():
+    close_all_tabs()
+    note('after closing all: counter %r' % tab_count())
+    expect(tab_count() == 0, 'counter should be 0 with only a start page: %r' % tab_count())
+    goto('/title?t=Tab%20one', expect='Tab one')
+    expect(tab_count() == 1, 'counter should be 1: %r' % tab_count())
+    new_tab()
+    end_typing()
+    expect(tab_count() == 1, 'a new start-page tab should not count: %r' % tab_count())
+
+@step('Tab list header matches the counter')
+def _():
+    goto('/title?t=Tab%20two', expect='Tab two')
+    c = tab_count()
+    open_tabs_grid()
+    h = grid_header_count()
+    shot('grid')
+    note('counter %r, header %r' % (c, h))
+    expect(h == c, 'header (%r) and counter (%r) differ' % (h, c))
+    starts = find(text='Start page')
+    note('start page cards: %d' % len(starts))
+    back()
+
+@step('Switch tabs from the list')
+def _():
+    goto('/title?t=Alpha%20tab', expect='Alpha tab')
+    new_tab()
+    end_typing()
+    goto('/title?t=Beta%20tab', expect='Beta tab')
+    open_tabs_grid()
+    n = wait_for(timeout=4, text='Alpha tab')
+    check(n, 'Alpha tab not in the list')
+    tap_xy(*n.center)
+    sleep(2)
+    check(page_has('Alpha tab', 4), 'did not switch to Alpha tab')
+
+@step('Close a tab, then Undo')
+def _():
+    goto('/title?t=Undo%20me', expect='Undo me')
+    c0 = tab_count()
+    open_tabs_grid()
+    cards = find(desc='Close tab')
+    check(cards, 'no close buttons on the cards')
+    # the card with "Undo me"
+    target = find(text='Undo me')
+    btn = cards[0]
+    if target:
+        btn = min(cards, key=lambda b: abs(b.center[1] - target[0].center[1]) + abs(b.center[0] - target[0].center[0]))
+    tap_xy(*btn.center)
+    sleep(1)
+    back()
+    u = wait_for(timeout=4, text='Undo')
+    shot('undo bar')
+    check(u, 'no Undo bar after closing a tab')
+    tap_xy(*u.center)
+    sleep(2)
+    note('counter %r -> %r' % (c0, tab_count()))
+    expect(tab_count() == c0, 'Undo did not bring the tab back')
+
+@step('Recently closed list reopens a tab')
+def _():
+    goto('/title?t=Closed%20one', expect='Closed one')
+    open_tabs_grid()
+    target = find(text='Closed one')
+    cards = find(desc='Close tab')
+    check(cards and target, 'card not found')
+    btn = min(cards, key=lambda b: abs(b.center[1] - target[0].center[1]) + abs(b.center[0] - target[0].center[0]))
+    tap_xy(*btn.center)
+    sleep(1)
+    r = find(desc='Recently closed') or find(text='Recently closed')
+    check(r, 'no Recently closed button in the tab list')
+    tap_xy(*r[0].center)
+    sleep(1.5)
+    shot('recently closed')
+    n = wait_for(timeout=4, text='Closed one')
+    check(n, 'closed tab not in Recently closed')
+    tap_xy(*n.center)
+    sleep(2)
+    expect(page_has('Closed one', 4), 'reopened tab did not show the page')
+
+@step('Close all tabs')
+def _():
+    goto('/title?t=Some%20tab', expect='Some tab')
+    close_all_tabs()
+    sleep(1)
+    note('counter %r, address %r' % (tab_count(), address()))
+    expect(tab_count() == 0, 'tabs left after Close all: %r' % tab_count())
+
+@step('Twelve tabs: counter, list, memory')
+def _():
+    close_all_tabs()
+    m0 = mem_kb()
+    for i in range(1, 13):
+        if i > 1:
+            new_tab()
+            end_typing()
+        goto('/title?t=Many%%20%d' % i, expect='Many %d' % i)
+    c = tab_count()
+    note('counter %r, memory %s -> %s kB' % (c, m0, mem_kb()))
+    expect(c == 12, 'counter should be 12: %r' % c)
+    open_tabs_grid()
+    expect(grid_header_count() == 12, 'header should say 12: %r' % grid_header_count())
+    for _ in range(3):
+        swipe_up(0.5)
+    shot('grid scrolled')
+    back()
+    close_all_tabs()
+
+@step('Tab list turns with the phone')
+def _():
+    goto('/title?t=Turn%20tab', expect='Turn tab')
+    open_tabs_grid()
+    rotate(True)
+    shot('grid landscape')
+    expect(present(text='Turn tab'), 'tab list lost after turning')
+    rotate(False)
+    back()
+
+@step('Closing the last tab leaves a start page')
+def _():
+    close_all_tabs()
+    goto('/title?t=Last%20tab', expect='Last tab')
+    open_tabs_grid()
+    cl = find(desc='Close tab')
+    check(cl, 'no close button')
+    tap_xy(*cl[0].center)
+    sleep(1.5)
+    to_base()
+    note('address %r, counter %r' % (address(), tab_count()))
+    check(present(rid='etUrl'), 'no browser after closing the last tab')

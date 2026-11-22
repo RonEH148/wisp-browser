@@ -52,6 +52,8 @@ object SofaVpn {
 
     private fun setStatus(value: Status) {
         uiHandler.post { status.value = value }
+        if (value == Status.ERROR) WispLog.error("vpn", "VPN error: ${lastError ?: "no details"}")
+        else WispLog.event("vpn", "VPN " + value.name.lowercase(java.util.Locale.ROOT))
         //the private-mode process (Wisp always starts there) reads the tunnel's state from here
         try {
             sharedState()?.edit()?.putString("status", value.name)?.putString("error", lastError ?: "")?.apply()

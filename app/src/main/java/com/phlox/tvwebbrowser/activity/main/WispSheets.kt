@@ -166,6 +166,23 @@ object WispSheets {
         val metrics = a.resources.displayMetrics
         val maxW = dp(a, 520f)
         val width = if (metrics.widthPixels > maxW) maxW else ViewGroup.LayoutParams.MATCH_PARENT
+        //diagnostics: a sheet must fit the screen (and not be wider than a phone) with its last row above
+        //the navigation bar
+        holder.addOnLayoutChangeListener(object : View.OnLayoutChangeListener {
+            override fun onLayoutChange(v: View, l: Int, t: Int, r: Int, b: Int, ol: Int, ot: Int, or: Int, ob: Int) {
+                v.removeOnLayoutChangeListener(this)
+                val log = com.phlox.tvwebbrowser.sofa.WispLog
+                val w = r - l
+                val screenW = a.resources.displayMetrics.widthPixels
+                if (w > screenW + 2 || w > maxW + 2) log.mismatch("UI: sheet too wide", "sheet $w px, screen $screenW px, limit $maxW px")
+                val loc = IntArray(2)
+                v.getLocationOnScreen(loc)
+                val screenH = v.rootView.resources.displayMetrics.heightPixels
+                if (loc[1] < 0) log.mismatch("UI: sheet too tall", "sheet starts ${loc[1]} px above the screen")
+                if (b - t <= 0) log.mismatch("UI: empty sheet", "sheet has no height")
+                if (screenH in 1 until loc[1]) log.mismatch("UI: sheet off screen", "sheet at y=${loc[1]}")
+            }
+        })
         d.window?.let { w ->
             w.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
             w.setLayout(width, ViewGroup.LayoutParams.WRAP_CONTENT)

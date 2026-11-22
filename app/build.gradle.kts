@@ -5,7 +5,7 @@ plugins {
 
 //Wisp's own build number (the phone app counts from 1; Lumen's is versionCode below).
 //The release workflow reads this line: keep the form "val wispVersionCode = <number>".
-val wispVersionCode = 19
+val wispVersionCode = 21
 
 android {
     namespace = "com.phlox.tvwebbrowser"
@@ -31,15 +31,25 @@ android {
 
     signingConfigs {
         create("release") {
-            val keystorePath = System.getenv("KEYSTORE_PATH")
-            if (keystorePath != null) {
+            //The signing key comes from the repository's secrets (the workflow writes it to a file and
+            //sets KEYSTORE_PATH, KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD). It must always be the same
+            //key, otherwise Android refuses to install updates.
+            val keystorePath = System.getenv("KEYSTORE_PATH")?.takeIf { it.isNotBlank() }
+            val local = rootProject.file("signing/sofabrowse.jks")
+            if (keystorePath != null && file(keystorePath).exists()) {
                 storeFile = file(keystorePath)
                 storePassword = System.getenv("KEYSTORE_PASSWORD")
-                keyAlias = System.getenv("KEY_ALIAS")
-                keyPassword = System.getenv("KEY_PASSWORD")
+                keyAlias = System.getenv("KEY_ALIAS")?.takeIf { it.isNotBlank() } ?: "sofabrowse"
+                keyPassword = System.getenv("KEY_PASSWORD")?.takeIf { it.isNotBlank() } ?: System.getenv("KEYSTORE_PASSWORD")
+            } else if (local.exists() && System.getenv("KEYSTORE_PASSWORD") != null) {
+                //a copy of the key in signing/ (not in the source any more), passwords from the environment
+                storeFile = local
+                storePassword = System.getenv("KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("KEY_ALIAS")?.takeIf { it.isNotBlank() } ?: "sofabrowse"
+                keyPassword = System.getenv("KEY_PASSWORD")?.takeIf { it.isNotBlank() } ?: System.getenv("KEYSTORE_PASSWORD")
+            } else {
+                logger.warn("No signing key: set the KEYSTORE secrets (see .github/workflows). Release builds will fail to package.")
             }
-            // Release signing uses environment variables only (KEYSTORE_PATH, KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD).
-            // No key or password is stored in this repository.
         }
     }
 
@@ -91,16 +101,18 @@ android {
             ndk { abiFilters += listOf("armeabi-v7a", "arm64-v8a") }
         }
         //Wisp: the light, private phone browser built from the same code. Its own app (installs
-        //next to Lumen), touch UI with the bar at the bottom, no Google Play services, 32-bit ARM only.
+        //next to Lumen), touch UI with the bar at the bottom, no Google Play services. 32- and 64-bit ARM:
+        //as a 32-bit app it ran out of memory with many tabs, and newer phones/tablets run 32-bit code
+        //only on their slow cores (or not at all)
         //Build: ./gradlew assembleWispGeckoExcludedRelease  (the release workflow reads wispVersionCode at the top)
         create("wisp") {
             dimension = "appstore"
             applicationId = "com.sofabrowse.wisp"
             versionCode = wispVersionCode
-            versionName = "1.6.3 Wisp"
+            versionName = "1.6.5 Wisp"
             buildConfigField("Boolean", "BUILT_IN_AUTO_UPDATE", "false")
             buildConfigField("Boolean", "IS_WISP", "true")
-            ndk { abiFilters += listOf("armeabi-v7a") }
+            ndk { abiFilters += listOf("armeabi-v7a", "arm64-v8a") }
         }
 
         create("geckoIncluded") {
