@@ -15,7 +15,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD || secrets.STORE_PASSWORD || secrets.SIGNING_STORE_PASSWORD }}
-      KEY_ALIAS: ${{ secrets.KEY_ALIAS || secrets.SIGNING_KEY_ALIAS }}
       KEY_PASSWORD: ${{ secrets.KEY_PASSWORD || secrets.SIGNING_KEY_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
@@ -27,6 +26,7 @@ jobs:
       - name: Signing key from the repository secrets
         env:
           KS: ${{ secrets.KEYSTORE_BASE64 || secrets.SIGNING_KEY_BASE64 || secrets.SIGNING_KEY || secrets.KEYSTORE }}
+          ALIAS_SECRET: ${{ secrets.KEY_ALIAS || secrets.SIGNING_KEY_ALIAS }}
         run: |
           if [ -z "$KS" ]; then
             echo "::error::No signing key. Add these under Settings > Secrets and variables > Actions: KEYSTORE_BASE64 (the .jks file as base64), KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD"
@@ -37,6 +37,11 @@ jobs:
           FP=$(keytool -list -v -keystore "$RUNNER_TEMP/release.jks" -storepass "$KEYSTORE_PASSWORD" 2>/dev/null | grep -m1 'SHA256:' | awk '{print $2}')
           if [ -z "$FP" ]; then echo "::error::The key or KEYSTORE_PASSWORD secret is wrong (keytool could not open the key)"; exit 1; fi
           echo "Signing key SHA-256: $FP"
+          #the key's name inside the file: the secret if it names a key that is there, else the first one
+          ALIASES=$(keytool -list -v -keystore "$RUNNER_TEMP/release.jks" -storepass "$KEYSTORE_PASSWORD" 2>/dev/null | sed -n 's/^Alias name: //p')
+          if [ -n "$ALIAS_SECRET" ] && printf '%s\n' "$ALIASES" | grep -qx "$ALIAS_SECRET"; then A="$ALIAS_SECRET"; else A=$(printf '%s\n' "$ALIASES" | head -1); fi
+          echo "Key alias: $A"
+          echo "KEY_ALIAS=$A" >> "$GITHUB_ENV"
       - name: Build Lumen (WebView engine)
         id: build
         run: |
